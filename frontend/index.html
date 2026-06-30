@@ -280,26 +280,30 @@
       .hero-sub { margin-bottom:18px; font-size:.82rem; }
       
       /* Mobile Scroll Enable Helpers */
-      body.mobile-scroll-enabled {
+      html, body {
         overflow-y: auto !important;
         height: auto !important;
       }
-      body.mobile-scroll-enabled .landing {
+      .landing {
         height: auto !important;
         min-height: 100vh;
         overflow: visible !important;
       }
-      body.mobile-scroll-enabled .hero {
+      .hero {
         flex: none !important;
         height: auto !important;
         overflow: visible !important;
-        padding: 24px 16px 80px; /* space at bottom */
+        padding: 24px 16px 40px; /* space at bottom */
       }
-      body.mobile-scroll-enabled #view-home {
+      .view-panel {
         height: auto !important;
         overflow: visible !important;
       }
-      body.mobile-scroll-enabled .l-copyright {
+      .scrollable-content {
+        max-height: none !important;
+        overflow-y: visible !important;
+      }
+      .l-copyright {
         position: static !important;
         padding: 16px 0;
         text-align: center;
@@ -922,15 +926,7 @@
       if (activeBtn) {
         activeBtn.classList.add('active');
       }
-
-      if (activePanel === viewHome) {
-        document.body.classList.add('mobile-scroll-enabled');
-      } else {
-        document.body.classList.remove('mobile-scroll-enabled');
-      }
     }
-
-    document.body.classList.add('mobile-scroll-enabled');
 
     if (btnHome) btnHome.addEventListener('click', () => showPanel(viewHome, btnHome));
     if (btnAbout) btnAbout.addEventListener('click', () => showPanel(viewAbout, btnAbout));
