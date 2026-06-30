@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>FarmMart - Farm Fresh, Delivered Direct</title>
+  <meta name="description" content="India's Premier Farm-to-Market Platform connecting farmers to top retailers."/>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+  <meta http-equiv="X-Frame-Options" content="DENY"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <style>
+    /* ── No-scroll single-screen layout ─────────────────────── */
+    html, body { height: 100%; overflow: hidden; }
+
+    .landing {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* NAV — compact */
+    .landing-nav {
+      padding: 14px 44px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: relative; z-index: 10; flex-shrink: 0;
+      border-bottom: 1px solid rgba(34,197,94,.07);
+      background: rgba(5,14,9,.6);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo { display:flex; align-items:center; gap:11px; }
+    .nav-logo-icon {
+      width:40px; height:40px;
+      background: linear-gradient(135deg,var(--primary-dark),var(--primary-light));
+      border-radius:11px; display:flex; align-items:center; justify-content:center;
+      font-size:1.3rem; box-shadow:var(--shadow-green);
+    }
+    .nav-logo-name { font-size:1rem; font-weight:800; letter-spacing:-.01em; }
+    .nav-logo-name span { color:var(--gold); }
+    .nav-links { display:flex; align-items:center; gap:4px; }
+    .nav-pill {
+      padding:7px 16px; border-radius:var(--radius-full);
+      font-size:.855rem; font-weight:500; color:rgba(240,253,244,.5);
+      transition:all .18s; border:none; background:transparent;
+    }
+    .nav-pill:hover { color:var(--text); background:rgba(255,255,255,.05); }
+    .nav-cta {
+      padding:8px 20px; border-radius:var(--radius-full);
+      background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.25);
+      color:var(--primary-light); font-weight:700; font-size:.855rem;
+      transition:all .2s; margin-left:6px;
+    }
+    .nav-cta:hover { background:rgba(34,197,94,.22); box-shadow:var(--shadow-green); }
+
+    /* HERO — fills remaining space, vertically centers content */
+    .hero {
+      flex: 1;
+      position: relative; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 12px 24px 8px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* Chip */
+    .hero-chip {
+      display:inline-flex; align-items:center; gap:8px;
+      background:rgba(234,179,8,.1); border:1px solid rgba(234,179,8,.22);
+      border-radius:var(--radius-full); padding:5px 16px;
+      font-size:.775rem; font-weight:600; color:var(--gold-light);
+      margin-bottom:16px;
+      animation: fadeUp .6s .1s var(--ease-out) both;
+    }
+    .chip-dot { width:6px; height:6px; background:var(--gold); border-radius:50%; animation:pulse 2s infinite; }
+
+    /* Title */
+    .hero-title {
+      font-size: clamp(2.6rem, 5vw, 4.2rem);
+      font-weight: 900; line-height: 1.06; letter-spacing: -.03em;
+      margin-bottom: 18px;
+      animation: fadeUp .6s .2s var(--ease-out) both;
+    }
+    .hero-title .g {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #4ade80 50%, var(--gold-light) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Subtitle */
+    .hero-sub {
+      font-size: clamp(.9rem, 1.4vw, 1.075rem);
+      color: rgba(134,239,172,.65);
+      max-width: 560px; margin: 0 auto 28px; line-height: 1.7;
+      animation: fadeUp .6s .28s var(--ease-out) both;
+    }
+
+    /* Role area */
+    .role-row {
+      width: 100%; max-width: 780px; margin: 0 auto;
+      animation: fadeUp .6s .38s var(--ease-out) both;
+    }
+    .role-label {
+      font-size:.72rem; font-weight:700; color:rgba(134,239,172,.3);
+      text-transform:uppercase; letter-spacing:.16em; margin-bottom:14px;
+    }
+    .role-cards { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+    .role-card {
+      background: rgba(10,27,18,.7);
+      border: 1.5px solid rgba(255,255,255,.07);
+      border-radius: 22px; padding: 30px 28px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      text-align: center; cursor: pointer;
+      transition: all .32s var(--ease);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      position: relative; overflow: hidden;
+      text-decoration: none; color: inherit;
+    }
+    .role-card::before {
+      content:''; position:absolute; inset:0; border-radius:inherit;
+      opacity:0; transition:opacity .32s var(--ease);
+    }
+    .role-card.admin::before { background:radial-gradient(ellipse at 50% 130%, rgba(234,179,8,.2) 0%, transparent 60%); }
+    .role-card.user::before  { background:radial-gradient(ellipse at 50% 130%, rgba(34,197,94,.2)  0%, transparent 60%); }
+    .role-card:hover::before { opacity:1; }
+    .role-card.admin:hover { border-color:rgba(234,179,8,.4); box-shadow:0 16px 48px rgba(234,179,8,.14), 0 0 0 1px rgba(234,179,8,.1); transform:translateY(-5px); }
+    .role-card.user:hover  { border-color:rgba(34,197,94,.4);  box-shadow:0 16px 48px rgba(34,197,94,.15),  0 0 0 1px rgba(34,197,94,.1);  transform:translateY(-5px); }
+
+    .role-icon {
+      width:74px; height:74px; border-radius:18px;
+      display:flex; align-items:center; justify-content:center; font-size:2.2rem;
+      position:relative; z-index:1; transition:transform .28s var(--ease-spring);
+    }
+    .role-card:hover .role-icon { transform:scale(1.1) rotate(-4deg); }
+    .role-card.admin .role-icon { background:rgba(234,179,8,.12); border:1.5px solid rgba(234,179,8,.22); }
+    .role-card.user  .role-icon { background:rgba(34,197,94,.12);  border:1.5px solid rgba(34,197,94,.22); }
+
+    .role-card-title {
+      font-size:1.45rem; font-weight:900; letter-spacing:-.02em;
+      position:relative; z-index:1;
+    }
+    .role-card.admin .role-card-title { color:var(--gold-light); }
+    .role-card.user  .role-card-title { color:var(--primary-light); }
+
+    .role-card-desc {
+      font-size:.9rem; color:rgba(134,239,172,.6); line-height:1.6;
+      position:relative; z-index:1;
+    }
+
+    .role-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 18px; border-radius:var(--radius-full);
+      font-size:.845rem; font-weight:700; position:relative; z-index:1;
+      margin-top:2px; transition:all .22s var(--ease);
+    }
+    .role-card.admin .role-btn { background:rgba(234,179,8,.13); color:var(--gold-light); border:1.5px solid rgba(234,179,8,.28); }
+    .role-card.user  .role-btn { background:rgba(34,197,94,.13);  color:var(--primary-light); border:1.5px solid rgba(34,197,94,.28); }
+    .role-card:hover .role-btn { transform:translateX(4px); }
+
+    /* STATS STRIP — compact bottom bar, 4 stats centered */
+    .stats-strip {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 24px;
+      position: relative; z-index: 5;
+      background: rgba(5,14,9,.5);
+      border-top: 1px solid rgba(34,197,94,.07);
+      backdrop-filter: blur(10px);
+    }
+    .stat-item {
+      display:flex; align-items:center; gap:10px;
+      padding:0 32px; text-align:center;
+    }
+    .stat-item+.stat-item { border-left:1px solid rgba(255,255,255,.06); }
+
+    /* Copyright — pinned bottom-right */
+    .l-copyright {
+      position: fixed;
+      bottom: 14px;
+      right: 22px;
+      font-size: .72rem;
+      color: rgba(134,239,172,.25);
+      z-index: 20;
+      pointer-events: none;
+      letter-spacing: .02em;
+    }
+    .stat-num {
+      font-size:1.375rem; font-weight:900; letter-spacing:-.03em;
+      background:linear-gradient(135deg, var(--primary-light), var(--gold-light));
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .stat-lbl { font-size:.7rem; color:rgba(134,239,172,.4); font-weight:500; white-space:nowrap; }
+
+    /* BG layers */
+    .bg-mesh {
+      position:fixed; inset:0; z-index:0;
+      background:
+        radial-gradient(ellipse 90% 70% at 5%  5%,  rgba(34,197,94,.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 70% at 95% 95%, rgba(234,179,8,.08)  0%, transparent 55%),
+        linear-gradient(175deg, #060f0a 0%, #050e09 50%, #030808 100%);
+    }
+    .bg-grid {
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        linear-gradient(rgba(34,197,94,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,197,94,.04) 1px, transparent 1px);
+      background-size:44px 44px;
+      mask-image:radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    }
+    .bg-orbs { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+    .orb {
+      position:absolute; border-radius:50%;
+      filter:blur(90px); animation:orbFloat 10s ease-in-out infinite;
+    }
+    .orb-1 { width:600px; height:600px; top:-200px; left:-200px; background:rgba(34,197,94,.08); animation-delay:0s; }
+    .orb-2 { width:450px; height:450px; bottom:-150px; right:-120px; background:rgba(234,179,8,.06); animation-delay:4s; }
+    .orb-3 { width:300px; height:300px; top:35%; left:60%; background:rgba(34,197,94,.05); animation-delay:7s; }
+
+    .particles { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .particle { position:absolute; border-radius:50%; background:var(--primary-light); animation:particleFloat linear infinite; }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .role-cards { grid-template-columns: 1fr; gap:10px; }
+      .landing-nav { padding:12px 18px; }
+      .nav-links { display:none; }
+      .hero { padding:10px 16px 6px; }
+      .hero-title { font-size: clamp(2rem, 6.5vw, 3rem); margin-bottom:12px; }
+      .hero-sub { margin-bottom:18px; font-size:.82rem; }
+      .stat-item { padding:0 14px; }
+    }
+    @media (max-width:480px) {
+      .role-card { padding:18px 16px; gap:8px; }
+      .role-icon { width:50px; height:50px; font-size:1.5rem; }
+      .stat-num { font-size:1.1rem; }
+    }
+
+    /* Active navigation pill styling */
+    .nav-pill.active {
+      color: var(--text) !important;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1.5px solid rgba(34, 197, 94, 0.35);
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+    }
+    
+    /* Panel layout and transitions */
+    .view-panel {
+      display: none;
+      width: 100%;
+      height: 100%;
+      animation: fadeIn 0.4s var(--ease) forwards;
+    }
+    
+    .view-panel.active-panel {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scrollable panels */
+    .scrollable-content {
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+      padding-bottom: 40px;
+      scrollbar-width: thin;
+      width: 100%;
+    }
+    .scrollable-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scrollable-content::-webkit-scrollbar-thumb {
+      background: rgba(34, 197, 94, 0.2);
+      border-radius: 99px;
+    }
+    .scrollable-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(34, 197, 94, 0.4);
+    }
+
+    /* Grid layout */
+    .grid-auto {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 18px;
+      width: 100%;
+    }
+
+    /* Store and Farmer Cards */
+    .store-card, .farmer-card {
+      background: rgba(10, 27, 18, 0.75);
+      border: 1px solid rgba(34, 197, 94, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: all 0.25s var(--ease);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      text-align: left;
+    }
+    .store-card:hover, .farmer-card:hover {
+      border-color: rgba(34, 197, 94, 0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 197, 94, 0.1);
+    }
+    .store-card-hdr, .farmer-card-hdr {
+      padding: 18px 18px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 13px;
+    }
+    .store-logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .store-logo.jm { background: linear-gradient(135deg, #0050d0, #2a7fff); }
+    .store-logo.ms { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+    .store-logo.rs { background: linear-gradient(135deg, #1a5bcc, #4899ff); }
+    .store-logo.af { background: linear-gradient(135deg, #e67700, #ffb347); color: #1a0c00; }
+    .store-logo.ps { background: linear-gradient(135deg, #166543, #22c55e); }
+    .store-logo.dm { background: linear-gradient(135deg, #b91c1c, #ef4444); }
+    .store-logo.qm { background: linear-gradient(135deg, #6b21a8, #a855f7); }
+    .store-logo.gs { background: linear-gradient(135deg, #78350f, #d97706); color: #fff8ed; }
+
+    .store-info, .farmer-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .store-name, .farmer-name {
+      font-size: .9375rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+      color: var(--text);
+    }
+    .store-loc, .farmer-loc {
+      font-size: .775rem;
+      color: rgba(134, 239, 172, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .store-card-body {
+      padding: 0 18px 14px;
+    }
+    .store-about {
+      font-size: .795rem;
+      color: rgba(134, 239, 172, 0.5);
+      margin-bottom: 11px;
+      line-height: 1.55;
+    }
+    .store-tags, .farmer-crops {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+    .store-tag, .crop-tag {
+      background: rgba(34, 197, 94, 0.07);
+      border: 1px solid rgba(34, 197, 94, 0.12);
+      color: rgba(134, 239, 172, 0.6);
+      font-size: .72rem;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+    .crop-tag {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .store-card-ftr, .farmer-card-ftr {
+      padding: 11px 18px;
+      border-top: 1px solid rgba(34, 197, 94, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stars {
+      display: flex;
+      gap: 1px;
+      align-items: center;
+    }
+    .star {
+      font-size: .8rem;
+      color: var(--gold);
+    }
+    .star-empty {
+      opacity: .25;
+    }
+    
+    /* Farmer Card Specifics */
+    .farmer-card {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 700;
+      color: #fff;
+    }
+    .avatar-sm {
+      width: 38px;
+      height: 38px;
+      font-size: .85rem;
+    }
+    .avatar-green {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+    }
+    .cat-pill {
+      padding: 3px 9px;
+      border-radius: 99px;
+      font-size: .65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .cat-pill.fruits { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
+    .cat-pill.vegetables { background: rgba(34, 197, 94, 0.15); color: var(--primary-light); }
+    .cat-pill.flowers { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
+    .cat-pill.pulses { background: rgba(234, 179, 8, 0.15); color: var(--gold-light); }
+    
+    .farmer-meta {
+      display: flex;
+      gap: 14px;
+    }
+    .farmer-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: rgba(134, 239, 172, 0.4);
+    }
+
+    /* About view specific layouts */
+    .about-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .about-card {
+      background: rgba(10, 27, 18, 0.7);
+      border: 1.5px solid rgba(255, 255, 255, 0.07);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(14px);
+    }
+    .about-card-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary-light);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .about-card-text {
+      font-size: 0.9rem;
+      color: rgba(134, 239, 172, 0.7);
+      line-height: 1.6;
+    }
+
+    /* Custom Alert Overlay with backdrop blur */
+    .custom-alert-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 14, 9, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 99999;
+      align-items: center;
+      justify-content: center;
+      animation: fadeInOverlay 0.25s var(--ease) forwards;
+    }
+    
+    .custom-alert-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(234, 179, 8, 0.1);
+      border: 1.5px solid rgba(234, 179, 8, 0.35);
+      border-radius: var(--radius-full);
+      padding: 12px 28px 12px 24px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 24px rgba(234, 179, 8, 0.2);
+      animation: zoomInAlert 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      max-width: 90%;
+    }
+
+    .custom-alert-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--gold);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--gold);
+      animation: pulseAlert 2s infinite;
+      flex-shrink: 0;
+    }
+
+    .custom-alert-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--gold-light);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    .custom-alert-btn {
+      background: rgba(234, 179, 8, 0.18);
+      border: 1px solid rgba(234, 179, 8, 0.45);
+      color: var(--gold-light);
+      padding: 6px 20px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 700;
+      transition: all 0.2s var(--ease);
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+    .custom-alert-btn:hover {
+      background: var(--gold);
+      color: var(--dark);
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeInOverlay {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes zoomInAlert {
+      from { opacity: 0; transform: scale(0.9) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes pulseAlert {
+      0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
+      70% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom Alert Overlay -->
+  <div id="custom-alert" class="custom-alert-overlay">
+    <div class="custom-alert-box">
+      <span class="custom-alert-dot"></span>
+      <span class="custom-alert-text">Select User or Admin</span>
+      <button class="custom-alert-btn" id="btn-custom-alert-ok">OK</button>
+    </div>
+  </div>
+
+<div class="landing">
+  <!-- BG -->
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="particles" id="particles"></div>
+
+  <!-- NAV -->
+  <nav class="landing-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">🌾</div>
+      <div class="nav-logo-name">Farm<span>Mart</span></div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-pill active" id="btn-home">Home</button>
+      <button class="nav-pill" id="btn-about">About</button>
+      <button class="nav-pill" id="btn-stores">Stores</button>
+      <button class="nav-pill" id="btn-farmers">Farmers</button>
+      <button class="nav-cta" id="btn-get-started">Get Started →</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <main class="hero">
+    <!-- View: Home -->
+    <div id="view-home" class="view-panel active-panel">
+      <div class="hero-chip">
+        <span class="chip-dot"></span>
+        🇮🇳 India's Premier Farm-to-Market Platform
+      </div>
+
+      <h1 class="hero-title">
+        From <span class="g">Farm Fields</span><br/>
+        to Your Favourite <span class="g">Stores</span>
+      </h1>
+
+      <p class="hero-sub">
+        Connecting fresh produce from fruit, vegetable, flower &amp; pulse growers
+        to JioMart, D-Mart, Amazon Fresh &amp; more - direct from farm to shelf.
+      </p>
+
+      <!-- ROLE CARDS -->
+      <div class="role-row">
+        <p class="role-label">Choose your role to get started</p>
+        <div class="role-cards">
+
+          <a href="auth.html?role=admin" class="role-card admin" id="admin-card">
+            <div class="role-icon">🛡️</div>
+            <div class="role-card-title">Admin</div>
+            <p class="role-card-desc">Manage stores, farmers, users &amp; reports from one central dashboard.</p>
+            <div class="role-btn">Enter as Admin <span>→</span></div>
+          </a>
+
+          <a href="auth.html?role=user" class="role-card user" id="user-card">
+            <div class="role-icon">💻</div>
+            <div class="role-card-title">User</div>
+            <p class="role-card-desc">Browse stores, explore farmers &amp; get instant help from AI assistant.</p>
+            <div class="role-btn">Enter as User <span>→</span></div>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- View: About -->
+    <div id="view-about" class="view-panel">
+      <div class="scrollable-content">
+        <div class="hero-chip" style="margin-bottom: 24px;">
+          <span class="chip-dot"></span>
+          ℹ️ Platform Capabilities &amp; Browser Architecture
+        </div>
+        
+        <h2 class="hero-title" style="font-size: 2.2rem; margin-bottom: 20px;">
+          About <span class="g">FarmMart</span>
+        </h2>
+        
+        <p class="hero-sub" style="margin: 0 auto 30px; max-width: 650px;">
+          FarmMart is India's premier farm-to-market web application, designed to facilitate a direct connection between local growers and national retail stores. Below is a summary of what this application can do and the browser APIs it leverages.
+        </p>
+
+        <div class="about-container" style="max-width: 800px; margin: 0 auto;">
+          <div class="about-card">
+            <div class="about-card-title">💾 Client-Side Data Storage (LocalStorage)</div>
+            <p class="about-card-text">
+              The application stores persistent platform data directly inside your browser's <strong>LocalStorage</strong>. This includes the database of registered farmers, partner retail stores, submitted demands, tasks, and queries, enabling off-grid client-side access.
+            </p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-card-title">🔑 Safe Sessions &amp; State Management (sessionStorage)</div>
+            <p class="about-card-text">
+              User logins and active user status are managed securely via <strong>sessionStorage</strong>. This verifies active sessions within the browser tab and automatically clears authorization data as soon as the tab or window is closed.
+            </p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-card-title">🛡️ Native Client Cryptography (Web Crypto API)</div>
+            <p class="about-card-text">
+              To prioritize credentials security, user passwords are not stored in plain text. The application uses the browser's native <strong>Web Crypto API</strong> to securely hash user passwords using the industry-standard SHA-256 algorithm.
+            </p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-card-title">💬 AI-Powered Dashboard Assistant</div>
+            <p class="about-card-text">
+              A responsive, client-side natural language processing helper allows logged-in users to search for crops, match logistics tasks, and get instant answers based on local data stores directly from the portal.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View: Stores -->
+    <div id="view-stores" class="view-panel">
+      <div class="scrollable-content">
+        <div class="hero-chip" style="margin-bottom: 24px;">
+          <span class="chip-dot"></span>
+          🏪 Partner Stores Network
+        </div>
+        
+        <h2 class="hero-title" style="font-size: 2.2rem; margin-bottom: 20px;">
+          Partner <span class="g">Retail Stores</span>
+        </h2>
+        
+        <p class="hero-sub" style="margin: 0 auto 30px; max-width: 600px;">
+          Browse verified retail chains sourcing fresh agricultural produce directly from our farm partners.
+        </p>
+
+        <div class="grid-auto" id="landing-stores-grid" style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+          <!-- Dynamic stores populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- View: Farmers -->
+    <div id="view-farmers" class="view-panel">
+      <div class="scrollable-content">
+        <div class="hero-chip" style="margin-bottom: 24px;">
+          <span class="chip-dot"></span>
+          👨‍🌾 Local Growers &amp; Suppliers
+        </div>
+        
+        <h2 class="hero-title" style="font-size: 2.2rem; margin-bottom: 20px;">
+          Registered <span class="g">Farmer Profiles</span>
+        </h2>
+        
+        <p class="hero-sub" style="margin: 0 auto 30px; max-width: 600px;">
+          Explore ratings, locations, and cultivated crops of our dedicated growers supplying national partners.
+        </p>
+
+        <div class="grid-auto" id="landing-farmers-grid" style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+          <!-- Dynamic farmers populated by JS -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- STATS BAR — 4 items centered -->
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-num">500+</div>
+      <div class="stat-lbl">Farmers</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">8</div>
+      <div class="stat-lbl">Retail Partners</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">50K+</div>
+      <div class="stat-lbl">Orders Delivered</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">4</div>
+      <div class="stat-lbl">Crop Categories</div>
+    </div>
+  </div>
+
+  <!-- Copyright — fixed bottom-right -->
+  <div class="l-copyright">© 2024 FarmMart</div>
+
+</div><!-- end .landing -->
+
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script>
+  // Initialize seed data
+  initializeData();
+
+  // Redirect if already logged in
+  const sess = getSession();
+  if (sess) {
+    window.location.replace(sess.role === 'admin' ? 'admin/dashboard.html' : 'user/dashboard.html');
+  }
+
+  // Interactive View Panel Toggling
+  (function () {
+    const btnHome = document.getElementById('btn-home');
+    const btnAbout = document.getElementById('btn-about');
+    const btnStores = document.getElementById('btn-stores');
+    const btnFarmers = document.getElementById('btn-farmers');
+    const btnGetStarted = document.getElementById('btn-get-started');
+
+    const viewHome = document.getElementById('view-home');
+    const viewAbout = document.getElementById('view-about');
+    const viewStores = document.getElementById('view-stores');
+    const viewFarmers = document.getElementById('view-farmers');
+
+    const buttons = [btnHome, btnAbout, btnStores, btnFarmers];
+    const panels = [viewHome, viewAbout, viewStores, viewFarmers];
+
+    function showPanel(activePanel, activeBtn) {
+      panels.forEach(p => p.classList.remove('active-panel'));
+      activePanel.classList.add('active-panel');
+
+      buttons.forEach(b => b.classList.remove('active'));
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      }
+    }
+
+    if (btnHome) btnHome.addEventListener('click', () => showPanel(viewHome, btnHome));
+    if (btnAbout) btnAbout.addEventListener('click', () => showPanel(viewAbout, btnAbout));
+    if (btnStores) {
+      btnStores.addEventListener('click', () => {
+        showPanel(viewStores, btnStores);
+        renderLandingStores();
+      });
+    }
+    if (btnFarmers) {
+      btnFarmers.addEventListener('click', () => {
+        showPanel(viewFarmers, btnFarmers);
+        renderLandingFarmers();
+      });
+    }
+    if (btnGetStarted) {
+      btnGetStarted.addEventListener('click', (e) => {
+        e.preventDefault();
+        const alertOverlay = document.getElementById('custom-alert');
+        if (alertOverlay) {
+          alertOverlay.style.display = 'flex';
+        }
+      });
+    }
+
+    // Dismiss custom alert overlay
+    const btnAlertOk = document.getElementById('btn-custom-alert-ok');
+    if (btnAlertOk) {
+      btnAlertOk.addEventListener('click', () => {
+        const alertOverlay = document.getElementById('custom-alert');
+        if (alertOverlay) {
+          alertOverlay.style.display = 'none';
+        }
+      });
+    }
+
+    function renderLandingStores() {
+      const grid = document.getElementById('landing-stores-grid');
+      if (!grid) return;
+      grid.replaceChildren();
+
+      const stores = getAllStores();
+      if (!stores.length) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: rgba(134,239,172,.35)">No stores found in LocalStorage.</div>';
+        return;
+      }
+
+      stores.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'store-card';
+
+        const hdr = document.createElement('div');
+        hdr.className = 'store-card-hdr';
+
+        const logo = document.createElement('div');
+        const initials = s.logo || s.name.substring(0, 2).toUpperCase();
+        logo.className = `store-logo ${initials.toLowerCase().substring(0, 2)}`;
+        logo.textContent = initials;
+        hdr.appendChild(logo);
+
+        const info = document.createElement('div');
+        info.className = 'store-info';
+        const name = document.createElement('h4');
+        name.className = 'store-name';
+        name.textContent = s.name;
+        info.appendChild(name);
+
+        const loc = document.createElement('div');
+        loc.className = 'store-loc';
+        loc.textContent = `📍 ${s.location}`;
+        info.appendChild(loc);
+        hdr.appendChild(info);
+        card.appendChild(hdr);
+
+        const body = document.createElement('div');
+        body.className = 'store-card-body';
+        const about = document.createElement('p');
+        about.className = 'store-about';
+        about.textContent = s.about || 'Verified partner retail chain purchasing agricultural goods.';
+        body.appendChild(about);
+
+        const tags = document.createElement('div');
+        tags.className = 'store-tags';
+        const prodList = s.products || [];
+        prodList.forEach(p => {
+          const tag = document.createElement('span');
+          tag.className = 'store-tag';
+          tag.textContent = p;
+          tags.appendChild(tag);
+        });
+        body.appendChild(tags);
+        card.appendChild(body);
+
+        const ftr = document.createElement('div');
+        ftr.className = 'store-card-ftr';
+
+        const stars = document.createElement('div');
+        stars.className = 'stars';
+        const rating = s.rating || 4.5;
+        for (let i = 1; i <= 5; i++) {
+          const star = document.createElement('span');
+          star.className = `star ${i > Math.round(rating) ? 'star-empty' : ''}`;
+          star.textContent = '★';
+          stars.appendChild(star);
+        }
+        ftr.appendChild(stars);
+
+        const action = document.createElement('span');
+        action.style.cssText = 'font-size:.78rem; font-weight:700; color:var(--primary-light)';
+        action.textContent = 'Sourcing Active ✓';
+        ftr.appendChild(action);
+        card.appendChild(ftr);
+
+        grid.appendChild(card);
+      });
+    }
+
+    function renderLandingFarmers() {
+      const grid = document.getElementById('landing-farmers-grid');
+      if (!grid) return;
+      grid.replaceChildren();
+
+      const farmers = getAllFarmers();
+      if (!farmers.length) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: rgba(134,239,172,.35)">No farmers found in LocalStorage.</div>';
+        return;
+      }
+
+      farmers.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'farmer-card';
+
+        const hdr = document.createElement('div');
+        hdr.className = 'farmer-card-hdr';
+
+        const av = document.createElement('div');
+        av.className = 'avatar avatar-sm avatar-green';
+        av.textContent = f.avatar || f.name.substring(0, 2).toUpperCase();
+        hdr.appendChild(av);
+
+        const info = document.createElement('div');
+        info.className = 'farmer-info';
+        
+        const titleWrap = document.createElement('div');
+        titleWrap.style.cssText = 'display:flex; justify-content:space-between; align-items:center';
+
+        const name = document.createElement('h4');
+        name.className = 'farmer-name';
+        name.textContent = f.name;
+        titleWrap.appendChild(name);
+
+        const pill = document.createElement('span');
+        pill.className = `cat-pill ${f.category}`;
+        pill.textContent = f.category;
+        titleWrap.appendChild(pill);
+        info.appendChild(titleWrap);
+
+        const loc = document.createElement('div');
+        loc.className = 'farmer-loc';
+        loc.textContent = `📍 ${f.location}`;
+        info.appendChild(loc);
+
+        hdr.appendChild(info);
+        card.appendChild(hdr);
+
+        const crops = document.createElement('div');
+        crops.className = 'farmer-crops';
+        const cropList = f.crops || [];
+        cropList.forEach(c => {
+          const crop = document.createElement('span');
+          crop.className = 'crop-tag';
+          crop.textContent = c;
+          crops.appendChild(crop);
+        });
+        card.appendChild(crops);
+
+        const ftr = document.createElement('div');
+        ftr.className = 'farmer-card-ftr';
+
+        const meta = document.createElement('div');
+        meta.className = 'farmer-meta';
+
+        const exp = document.createElement('div');
+        exp.className = 'farmer-meta-item';
+        exp.textContent = `⭐ ${f.rating || '4.5'}`;
+        meta.appendChild(exp);
+
+        const land = document.createElement('div');
+        land.className = 'farmer-meta-item';
+        land.textContent = `🚜 ${f.landArea || '2 acres'}`;
+        meta.appendChild(land);
+        ftr.appendChild(meta);
+
+        const expItem = document.createElement('span');
+        expItem.style.cssText = 'font-size:.78rem; font-weight:700; color:rgba(134,239,172,.45)';
+        expItem.textContent = `${f.experience || '5 yrs exp'}`;
+        ftr.appendChild(expItem);
+
+        card.appendChild(ftr);
+        grid.appendChild(card);
+      });
+    }
+  })();
+
+  // Floating particles
+  (function () {
+    const c = document.getElementById('particles');
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const sz = Math.random() * 3.5 + 1.5;
+      Object.assign(p.style, {
+        width: sz + 'px', height: sz + 'px',
+        left: Math.random() * 100 + '%',
+        animationDuration: (Math.random() * 14 + 10) + 's',
+        animationDelay: (Math.random() * 12) + 's',
+        opacity: (Math.random() * .12 + .04).toString(),
+      });
+      c.appendChild(p);
+    }
+  })();
+</script>
+</body>
+</html>

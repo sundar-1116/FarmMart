@@ -1,0 +1,12 @@
+{
+  "name": "farmers-to-mart",
+  "version": "1.0.0",
+  "description": "India's Premier Farm-to-Market Platform",
+  "scripts": {
+    "dev": "live-server frontend --port=3000 --host=127.0.0.1 --no-browser",
+    "start": "live-server frontend --port=3000 --host=127.0.0.1 --no-browser"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Dashboard - FarmMart</title>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="../css/chatbot.css" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+</head>
+<body>
+<div class="dashboard-page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-inner">
+        <div class="sidebar-logo-icon">🌾</div>
+        <div class="sidebar-logo-text">
+          <div class="sidebar-logo-name">Farm<span>Mart</span></div>
+          <div class="sidebar-logo-sub">User Portal</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <button class="sidebar-item active" id="nav-dashboard" onclick="showSection('dashboard')">
+        <span class="sidebar-item-icon">🏠</span>
+        <span class="sidebar-item-label">Dashboard</span>
+      </button>
+
+      <div class="sidebar-section-label">Marketplace</div>
+      <button class="sidebar-item" id="nav-stores" onclick="showSection('stores')">
+        <span class="sidebar-item-icon">🏪</span>
+        <span class="sidebar-item-label">Browse Stores</span>
+      </button>
+      <button class="sidebar-item" id="nav-farmers" onclick="showSection('farmers')">
+        <span class="sidebar-item-icon">👨‍🌾</span>
+        <span class="sidebar-item-label">Browse Farmers</span>
+      </button>
+      <button class="sidebar-item" id="nav-products" onclick="showSection('products')">
+        <span class="sidebar-item-icon">🛒</span>
+        <span class="sidebar-item-label">Fresh Produce</span>
+      </button>
+
+      <div class="sidebar-section-label">Operations</div>
+      <button class="sidebar-item" id="nav-demands" onclick="showSection('demands')">
+        <span class="sidebar-item-icon">📋</span>
+        <span class="sidebar-item-label">Marts Demands</span>
+      </button>
+      <button class="sidebar-item" id="nav-procure" onclick="showSection('procure')">
+        <span class="sidebar-item-icon">🚚</span>
+        <span class="sidebar-item-label">Procure &amp; Distribute</span>
+      </button>
+      <button class="sidebar-item" id="nav-deliveries" onclick="showSection('deliveries')">
+        <span class="sidebar-item-icon">💳</span>
+        <span class="sidebar-item-label">Deliveries &amp; Payments</span>
+      </button>
+
+      <div class="sidebar-section-label">Support</div>
+      <button class="sidebar-item" id="nav-help" onclick="toggleChatbot()">
+        <span class="sidebar-item-icon">💬</span>
+        <span class="sidebar-item-label">AI Assistant</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="openEditProfileModal()" style="cursor: pointer;" title="Edit Profile">
+        <div class="avatar avatar-sm avatar-green" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-name">User Account</div>
+          <div class="sidebar-user-role">Retail Partner / User</div>
+        </div>
+        <button class="sidebar-logout" onclick="event.stopPropagation(); handleLogout()" title="Logout">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"></path>
+            <polyline points="8 17 3 12 8 7"></polyline>
+            <line x1="3" y1="12" x2="15" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <!-- Header -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title-wrap">
+          <div class="page-breadcrumb">FarmMart / User</div>
+          <div class="page-title" id="page-title">Dashboard</div>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <div class="header-avatar">
+          <div class="avatar avatar-sm avatar-green" id="header-avatar">U</div>
+          <span class="header-avatar-name" id="header-name">User</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="page-content">
+
+      <!-- ── DASHBOARD ─────────────────────────────────────── -->
+      <section class="content-section active" id="section-dashboard">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">🏠</div>
+            <div>
+              <h2 id="welcome-msg">Welcome Back!</h2>
+              <p>Explore direct farm fresh listings and connect with local agricultural suppliers.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications / Inbox Area -->
+        <div id="user-inbox-area" style="margin-bottom: 24px;"></div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid" id="stats-grid">
+          <!-- Populated dynamically by user.js -->
+        </div>
+
+        <!-- Charts & Activity Row -->
+        <div class="grid-2" style="margin-top:24px">
+          <div class="chart-card" style="grid-column: 1 / -1">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">📈 My Supply Chain Activity</div>
+                <div class="chart-subtitle">Order volume generated across partner networks (Monthly)</div>
+              </div>
+            </div>
+            <canvas id="user-activity-chart" height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── STORES ────────────────────────────────────────── -->
+      <section class="content-section" id="section-stores">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">🏪</div>
+            <div><h2>Partner Retail Stores</h2><p>Browse our verified retail partner chains sourcing from local farms</p></div>
+          </div>
+        </div>
+
+        <div class="filter-tabs" style="margin-bottom:20px" id="stores-filter-row">
+          <button class="filter-tab active" onclick="filterStores('all',this)">All</button>
+          <button class="filter-tab" onclick="filterStores('supermarket',this)">Supermarket</button>
+          <button class="filter-tab" onclick="filterStores('hypermarket',this)">Hypermarket</button>
+          <button class="filter-tab" onclick="filterStores('online',this)">Online</button>
+          <button class="filter-tab" onclick="filterStores('general',this)">General Mart</button>
+        </div>
+
+        <div class="grid-auto" id="stores-grid"></div>
+      </section>
+
+      <!-- ── FARMERS ───────────────────────────────────────── -->
+      <section class="content-section" id="section-farmers">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">👨‍🌾</div>
+            <div><h2>Registered Farmer Profiles</h2><p>Discover local farmers, their specialties, and crop schedules</p></div>
+          </div>
+        </div>
+
+        <!-- Category filter -->
+        <div class="farmer-cat-grid" id="farmer-cat-grid"></div>
+
+        <div class="grid-auto" id="farmers-grid"></div>
+      </section>
+
+      <!-- ── PRODUCTS ──────────────────────────────────────── -->
+      <section class="content-section" id="section-products">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">🍎</div>
+            <div><h2>Fresh Farm Produce</h2><p>Explore current seasonal harvests available for bulk procurement</p></div>
+          </div>
+          <div class="search-bar-wrap" style="width:250px">
+            <input type="text" id="product-search" class="form-input" placeholder="Search crops..." oninput="searchProducts(this.value)" style="padding: 8px 14px; font-size:.875rem" />
+          </div>
+        </div>
+
+        <div class="filter-tabs" style="margin-bottom:20px" id="products-filter-row">
+          <button class="filter-tab active" onclick="filterProducts('all',this)">All Harvests</button>
+          <button class="filter-tab" onclick="filterProducts('fruits',this)">🍎 Fruits</button>
+          <button class="filter-tab" onclick="filterProducts('vegetables',this)">🥦 Vegetables</button>
+          <button class="filter-tab" onclick="filterProducts('flowers',this)">🌸 Flowers</button>
+          <button class="filter-tab" onclick="filterProducts('pulses',this)">🌾 Pulses &amp; Grains</button>
+        </div>
+
+        <div class="grid-auto" id="products-grid"></div>
+      </section>
+
+      <!-- ── MARTS DEMANDS ─────────────────────────────────── -->
+      <section class="content-section" id="section-demands">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">📋</div>
+            <div>
+              <h2>Store Demands</h2>
+              <p>Fulfill active demand requests posted by retail stores</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Left: Consolidated Needs -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">📊 Consolidated Quantities Needed</div>
+            </div>
+            <div class="consolidated-list" id="consolidated-demands" style="padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Right: Action Stats -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">⚡ Quick Instructions</div>
+            </div>
+            <div style="padding: 15px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+              <p>Marts demand goods through this system. To fulfill a demand:</p>
+              <ol style="margin-left: 20px; margin-top: 10px;">
+                <li>Select a demand from the list below.</li>
+                <li>Click <strong>Procure &amp; Distribute</strong>.</li>
+                <li>Match the request with a farmer, set pricing, and set a delivery deadline.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 24px; margin-bottom: 12px; color: var(--text);">Active Retail Store Demands</h3>
+        <div class="grid-auto" id="demands-grid"></div>
+      </section>
+
+      <!-- ── PROCURE & DISTRIBUTE ──────────────────────────── -->
+      <section class="content-section" id="section-procure">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">🚚</div>
+            <div>
+              <h2>Procure &amp; Distribute</h2>
+              <p>Assign store demands to farmers and define distribution terms</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 24px; max-width: 650px; margin: 0 auto; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);">
+          <form id="procure-form" onsubmit="handleProcureSubmit(event)">
+            <input type="hidden" id="procure-demand-id" value="" />
+            
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Select Store Demand to Fulfill</label>
+              <select id="procure-demand-select" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" onchange="handleDemandSelectChange(this.value)">
+                <option value="">-- Choose an active demand --</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="grid-2" style="gap: 16px;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Store Name</label>
+                <input type="text" id="procure-store-name" class="form-input" style="width:100%; padding: 10px; background:rgba(255,255,255,0.02); border: 1px solid var(--border); color:var(--text); border-radius:6px;" readonly />
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Item &amp; Quantity</label>
+                <input type="text" id="procure-item-qty" class="form-input" style="width:100%; padding: 10px; background:rgba(255,255,255,0.02); border: 1px solid var(--border); color:var(--text); border-radius:6px;" readonly />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Select Farmer to Settle Supply</label>
+              <select id="procure-farmer-select" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" required>
+                <option value="">-- Select a registered farmer --</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="grid-3" style="gap: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:500; color:var(--text);">Purchase Price (₹/unit)</label>
+                <input type="number" id="procure-purchase-price" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" placeholder="e.g. 20" min="0" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:500; color:var(--text);">Selling Price (₹/unit)</label>
+                <input type="number" id="procure-delivery-price" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" placeholder="e.g. 35" min="0" required />
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:500; color:var(--text);">Delivery Charges (₹)</label>
+                <input type="number" id="procure-delivery-charges" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" placeholder="e.g. 800" min="0" required />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Delivery Deadline</label>
+              <input type="date" id="procure-deadline" class="form-input" style="width:100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-weight: 600;">Create Procurement &amp; Distribution Task</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ── DELIVERIES & PAYMENTS ─────────────────────────── -->
+      <section class="content-section" id="section-deliveries">
+        <div class="section-header">
+          <div class="section-title">
+            <div class="icon">💳</div>
+            <div>
+              <h2>Deliveries &amp; Payments</h2>
+              <p>Manage pending payments, deliveries, and generate reports</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 24px;">
+          <!-- Weekly/Monthly Report Generator -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">✉️ Report Mailer to Admin</div>
+            </div>
+            <div style="padding: 20px;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; margin-bottom:6px; font-weight:600; color:var(--text);">Select Report Cycle</label>
+                <select id="report-type" class="form-input" style="width: 100%; padding: 10px; background:var(--bg); border: 1px solid var(--border); color:var(--text); border-radius:6px;">
+                  <option value="weekly">Weekly Summary Report</option>
+                  <option value="monthly">Monthly Summary Report</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" style="width:100%; padding:10px; font-weight: 600;" onclick="handleSendReport()">
+                🚀 Generate &amp; Mail Report to Admin
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Alert / Rules Box -->
+          <div class="chart-card" style="display: flex; flex-direction: column; justify-content: center; padding: 20px;">
+            <h4 style="color: var(--gold); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+              ⚠️ Order Delivery Policy
+            </h4>
+            <ul style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-left: 20px;">
+              <li>Deliveries can only be executed for tasks that have been <strong>Paid</strong>.</li>
+              <li>Deliveries must follow the order of pending payments. If a user has an older unpaid item, newer tasks cannot be delivered.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 24px; margin-bottom: 12px; color: var(--text);">My Distribution &amp; Supply Tasks</h3>
+        
+        <div class="table-responsive" style="background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
+            <thead>
+              <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);">
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Store</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Item</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Qty</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Farmer</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Pricing (Buy/Sell/Delv)</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Payment</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Delivery</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); font-weight:600;">Deadline</th>
+                <th style="padding: 12px 16px; color: var(--text-muted); text-align: right; font-weight:600;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="user-tasks-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- end page-content -->
+  </div><!-- end main-content -->
+</div>
+
+<!-- ── CHATBOT UI ───────────────────────────────────────────── -->
+<button class="chatbot-trigger" id="chat-trigger" onclick="toggleChatbot()" title="AI Chatbot Assistant">
+  💬
+  <span class="chatbot-notif hidden" id="chat-notif">1</span>
+</button>
+
+<div class="chatbot-panel" id="chat-panel">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-icon">🌾</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name">FarmAssistant AI</div>
+      <div class="chat-header-status">
+        <span class="chat-status-dot"></span>
+        <span>Online &amp; Active</span>
+      </div>
+    </div>
+    <button class="chat-close" onclick="toggleChatbot()">✕</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" id="chat-messages">
+    <!-- Messages loaded dynamically -->
+  </div>
+
+  <!-- Quick suggestions -->
+  <div class="chat-suggestions" id="chat-suggestions">
+    <button class="suggestion-chip" onclick="handleSuggestion('Who are the registered fruits growers?')">🍎 Fruits Growers</button>
+    <button class="suggestion-chip" onclick="handleSuggestion('Which stores deliver fresh vegetables?')">🏪 Partner Stores</button>
+    <button class="suggestion-chip" onclick="handleSuggestion('How is pricing decided?')">💰 Pricing info</button>
+  </div>
+
+  <!-- Input Bar -->
+  <form class="chat-input-bar" onsubmit="submitChatMessage(event)">
+    <input type="text" id="chat-input" class="chat-input" placeholder="Ask about farmers, crops, delivery..." autocomplete="off" />
+    <button type="submit" class="chat-send" id="chat-send">➔</button>
+  </form>
+</div>
+
+<!-- ── READ SUPPORT EMAIL MODAL ────────────────────────────── -->
+<div class="modal-overlay hidden" id="read-email-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="read-email-title">✉️ AI Support Resolution Mail</h3>
+      <button class="modal-close" onclick="closeModal('read-email-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+      <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="color:var(--text); font-weight:600;">From: <span style="font-weight:normal; color:var(--text-muted);">Farmers To Mart Admin Support (AI Response)</span></div>
+        <div style="margin-top: 4px; color:var(--text); font-weight:600;">Sent: <span id="read-email-date" style="font-weight:normal; color:var(--text-muted);"></span></div>
+      </div>
+      <div id="read-email-content" style="color:var(--text); background:rgba(255,255,255,0.01); padding:16px; border-radius:8px; border:1px solid var(--border); white-space:pre-wrap; line-height:1.6; font-size:0.92rem; max-height:400px; overflow-y:auto;">
+        <!-- Prefilled dynamically -->
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+        <button type="button" class="btn btn-primary" onclick="closeModal('read-email-modal')">Close Message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT PROFILE MODAL ──────────────────────────────────── -->
+<div class="modal-overlay hidden" id="edit-profile-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👤 Edit Profile</h3>
+      <button class="modal-close" onclick="closeModal('edit-profile-modal')">✕</button>
+    </div>
+    <form onsubmit="submitEditProfile(event)" novalidate style="display:flex;flex-direction:column;gap:16px">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="edit-profile-name" class="form-input" required />
+          <div class="err-msg hidden" id="edit-profile-name-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="edit-profile-email" class="form-input" required />
+          <div class="err-msg hidden" id="edit-profile-email-err"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="tel" id="edit-profile-phone" class="form-input" required />
+          <div class="err-msg hidden" id="edit-profile-phone-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Age</label>
+          <input type="number" id="edit-profile-age" class="form-input" required min="18" max="100" />
+          <div class="err-msg hidden" id="edit-profile-age-err"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <select id="edit-profile-gender" class="form-input">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profile Photograph</label>
+          <input type="file" id="edit-profile-photo" class="form-input" accept="image/*" />
+          <div class="err-msg hidden" id="edit-profile-photo-err"></div>
+        </div>
+      </div>
+      
+      <!-- Password edit section -->
+      <div class="form-group" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+          <input type="checkbox" id="edit-profile-changepw-toggle" onchange="toggleChangePasswordFields()" style="width:16px; height:16px; accent-color:var(--primary);" />
+          Change Password
+        </label>
+      </div>
+
+      <div id="edit-profile-pw-fields" class="hidden" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Current Password</label>
+          <input type="password" id="edit-profile-curpw" class="form-input" placeholder="Current password" />
+          <div class="err-msg hidden" id="edit-profile-curpw-err"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" id="edit-profile-newpw" class="form-input" placeholder="New password" />
+            <div class="err-msg hidden" id="edit-profile-newpw-err"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" id="edit-profile-confpw" class="form-input" placeholder="Confirm new password" />
+            <div class="err-msg hidden" id="edit-profile-confpw-err"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px">
+        <button type="button" class="btn btn-outline" onclick="closeModal('edit-profile-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="edit-profile-btn">
+          <span id="edit-profile-btn-txt">Save Changes</span>
+          <span class="spinner hidden" id="edit-profile-spin"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/data.js"></script>
+<script src="./user.js"></script>
+<script src="./chatbot.js"></script>
+</body>
+</html>
