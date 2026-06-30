@@ -342,7 +342,7 @@ async function initializeData() {
 function getAllUsers() { return getItem(FTM_KEYS.USERS) || []; }
 function saveUsers(users) { setItem(FTM_KEYS.USERS, users); }
 
-const BACKEND_URL = 'http://127.0.0.1:5001';
+const BACKEND_URL = 'https://farmmart-backend-y6sn.onrender.com';
 
 async function createUser(name, email, password, phone = '', gender = '', age = '', photo = '', role = 'user') {
   try {
