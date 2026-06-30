@@ -279,26 +279,66 @@
       .hero-title { font-size: clamp(2rem, 6.5vw, 3rem); margin-bottom:12px; }
       .hero-sub { margin-bottom:18px; font-size:.82rem; }
       
+      /* Mobile Scroll Enable Helpers */
+      body.mobile-scroll-enabled {
+        overflow-y: auto !important;
+        height: auto !important;
+      }
+      body.mobile-scroll-enabled .landing {
+        height: auto !important;
+        min-height: 100vh;
+        overflow: visible !important;
+      }
+      body.mobile-scroll-enabled .hero {
+        flex: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding: 24px 16px 80px; /* space at bottom */
+      }
+      body.mobile-scroll-enabled #view-home {
+        height: auto !important;
+        overflow: visible !important;
+      }
+      body.mobile-scroll-enabled .l-copyright {
+        position: static !important;
+        padding: 16px 0;
+        text-align: center;
+        width: 100%;
+        display: block;
+        color: rgba(134,239,172,.25);
+      }
+
+      /* Compact Minimized Stats Strip */
       .stats-strip {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        padding: 16px;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 6px 14px !important;
+        padding: 10px !important;
+        border-top: 1px solid rgba(34,197,94,.07);
       }
       .stat-item {
         border-left: none !important;
-        border-bottom: 1px solid rgba(255,255,255,.05);
-        padding: 8px 0;
-        justify-content: center;
+        border-bottom: none !important;
+        padding: 0 4px !important;
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
       }
-      .stat-item:nth-child(n+3) {
-        border-bottom: none;
+      .stat-num {
+        font-size: 0.95rem !important;
+      }
+      .stat-lbl {
+        font-size: 0.65rem !important;
+        opacity: 0.7;
       }
     }
     @media (max-width:480px) {
       .role-card { padding:18px 16px; gap:8px; }
       .role-icon { width:50px; height:50px; font-size:1.5rem; }
-      .stat-num { font-size:1.1rem; }
+      .stat-num { font-size:1rem !important; }
+      .stat-lbl { font-size:0.65rem !important; }
     }
 
     /* Active navigation pill styling */
@@ -882,7 +922,15 @@
       if (activeBtn) {
         activeBtn.classList.add('active');
       }
+
+      if (activePanel === viewHome) {
+        document.body.classList.add('mobile-scroll-enabled');
+      } else {
+        document.body.classList.remove('mobile-scroll-enabled');
+      }
     }
+
+    document.body.classList.add('mobile-scroll-enabled');
 
     if (btnHome) btnHome.addEventListener('click', () => showPanel(viewHome, btnHome));
     if (btnAbout) btnAbout.addEventListener('click', () => showPanel(viewAbout, btnAbout));
