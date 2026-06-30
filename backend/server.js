@@ -30,10 +30,10 @@ app.get('/', (req, res) => {
   res.json({ message: "Farmers To Mart API is running..." });
 });
 
-// Start Server - strictly listening on 127.0.0.1 for safety
+// Start Server
 const PORT = process.env.PORT || 5000;
-const HOST = '127.0.0.1';
+const HOST = '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on http://${HOST}:${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
