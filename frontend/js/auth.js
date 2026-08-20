@@ -84,6 +84,9 @@
       if (hint)    hint.classList.add('hidden'); // Do not reveal admin password
       if (title)   title.textContent = 'Admin Login';
       if (sub)     sub.textContent   = 'Sign in with your admin credentials';
+      if (tabSU)   tabSU.classList.add('hidden'); // Hide Sign Up tab for Admin
+      if (tabs)    tabs.style.gridTemplateColumns = '1fr'; // Only show Login tab
+      if (footer)  footer.classList.add('hidden'); // Hide sign up footer links for Admin
     } else {
       if (chip)    { chip.className = 'role-chip user'; chip.textContent = '💻 User Access'; }
       if (title)   title.textContent = 'Welcome Back';
@@ -92,6 +95,11 @@
 
   // ── Tab switching ─────────────────────────────────────────────
   window.switchTab = function (tab) {
+    if (role === 'admin' && tab === 'signup') {
+      // Admin registration is disabled publicly
+      return;
+    }
+
     const lf  = document.getElementById('login-form');
     const sf  = document.getElementById('signup-form');
     const ff  = document.getElementById('forgot-form');
@@ -117,8 +125,8 @@
         ft.appendChild(txt);
         ft.appendChild(btn);
       }
-      if (ttl) ttl.textContent = role === 'admin' ? 'Create Admin Account' : 'Create Account';
-      if (sub) sub.textContent = role === 'admin' ? 'Join FarmMart as an administrator' : 'Join FarmMart for free today';
+      if (ttl) ttl.textContent = 'Create Account';
+      if (sub) sub.textContent = 'Join FarmMart for free today';
     } else if (tab === 'forgot') {
       lf && lf.classList.add('hidden');
       sf && sf.classList.add('hidden');
@@ -152,15 +160,15 @@
       if (ft) {
         ft.classList.remove('hidden');
         ft.replaceChildren();
-        const txt = document.createTextNode(role === 'admin' ? "Already have an admin account? " : "Don't have an account? ");
+        const txt = document.createTextNode("Don't have an account? ");
         const btn = document.createElement('button');
-        btn.textContent = role === 'admin' ? 'Sign in' : 'Sign up free';
-        btn.onclick = () => switchTab(role === 'admin' ? 'login' : 'signup');
+        btn.textContent = 'Sign up free';
+        btn.onclick = () => switchTab('signup');
         ft.appendChild(txt);
         ft.appendChild(btn);
       }
-      if (ttl) ttl.textContent = role === 'admin' ? 'Admin Login' : 'Welcome Back';
-      if (sub) sub.textContent = role === 'admin' ? 'Sign in with your admin credentials' : 'Sign in to your account to continue';
+      if (ttl) ttl.textContent = 'Welcome Back';
+      if (sub) sub.textContent = 'Sign in to your account to continue';
       
       // Ensure details form panel is shown and 2FA panel is hidden when returning to signup
       const detailsPanel = document.getElementById('signup-details-panel');
@@ -409,44 +417,10 @@
     }
   };
 
-  // ── Admin 2FA Verification
-  window.handleVerifyAdminSignup2FA = async function (e) {
+  // ── Admin 2FA Verification (Disabled in FarmMart 2.0)
+  window.handleVerifyAdminSignup2FA = function (e) {
     if (e) e.preventDefault();
-    clearErr('s-2fa-err');
-    
-    const codeEl = document.getElementById('s-2fa-code');
-    if (!codeEl) return;
-    const enteredCode = codeEl.value.trim();
-    
-    const pending = window.pendingAdminSignup;
-    if (!pending) {
-      toast('Verification session expired. Please sign up again.', 'error');
-      switchTab('signup');
-      return;
-    }
-    
-    if (enteredCode !== pending.code) {
-      showErr('s-2fa-err', 'Invalid verification code. Please check and try again.');
-      toast('Invalid verification code.', 'error');
-      return;
-    }
-    
-    setLoading('s-2fa-btn-txt', 's-2fa-spin', true);
-    try {
-      const res = await createUser(pending.name, pending.email, pending.pw, pending.phone, pending.gender, pending.age, pending.photoDataUrl, 'admin');
-      if (res.success) {
-        await loginUser(pending.email, pending.pw, 'admin');
-        toast(`Admin account verified & created! Welcome, ${pending.name}! 🛡️`, 'success');
-        setTimeout(() => window.location.replace('admin/dashboard.html'), 900);
-      } else {
-        showErr('s-2fa-err', res.message);
-        toast(res.message, 'error');
-      }
-    } catch (err) {
-      toast('Something went wrong during admin creation. Try again.', 'error');
-    } finally {
-      setLoading('s-2fa-btn-txt', 's-2fa-spin', false);
-    }
+    toast('Public admin registration is disabled.', 'error');
   };
 
   // ── Google Sign-in (simulated)

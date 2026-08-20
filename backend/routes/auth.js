@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { registerUser, loginUser, updateProfile, changePassword, forgotPassword, resetPassword } = require('../controllers/authController');
+const authMiddleware = require('../middleware/authMiddleware');
+const { authLimiter } = require('../middleware/rateLimiter');
 
-// Signup endpoint
-router.post('/signup', registerUser);
+// Signup endpoint (rate limited)
+router.post('/signup', authLimiter, registerUser);
 
-// Login endpoint
-router.post('/login', loginUser);
+// Login endpoint (rate limited)
+router.post('/login', authLimiter, loginUser);
 
-// Profile endpoints
-router.put('/profile', updateProfile);
-router.post('/password', changePassword);
+// Profile endpoints (authenticated)
+router.put('/profile', authMiddleware, updateProfile);
+router.post('/password', authMiddleware, changePassword);
 
-// Forgot & Reset password endpoints
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+// Forgot & Reset password endpoints (rate limited)
+router.post('/forgot-password', authLimiter, forgotPassword);
+router.post('/reset-password', authLimiter, resetPassword);
 
 module.exports = router;

@@ -122,31 +122,6 @@ const SEED_REPORTS = {
 
 // ── Initialize Data ──────────────────────────────────────────
 async function initializeData() {
-  // Always ensure the admin account exists with admin@gmail. / admin
-  const adminHash = await hashPassword('admin');
-  const adminUser = {
-    id: 'admin-001',
-    name: 'Platform Admin',
-    email: 'admin@gmail.',
-    passwordHash: adminHash,
-    role: 'admin',
-    joinDate: '2023-01-01',
-    status: 'active',
-    avatar: 'PA',
-  };
-
-  const customAdminHash = await hashPassword('hemasundar');
-  const customAdminUser = {
-    id: 'admin-hemasundar',
-    name: 'Hema Sundar Sai',
-    email: 'hemasundarsai@gmail.com',
-    passwordHash: customAdminHash,
-    role: 'admin',
-    joinDate: '2023-01-01',
-    status: 'active',
-    avatar: 'HS',
-  };
-
   // Seed mock users with complete profile details
   const mockUsers = [
     {
@@ -274,22 +249,6 @@ async function initializeData() {
   ];
 
   let users = getAllUsers();
-  
-  // Clean/update admin
-  const adminIdx = users.findIndex(u => u.role === 'admin' && u.email === 'admin@gmail.');
-  if (adminIdx !== -1) {
-    users[adminIdx] = adminUser;
-  } else {
-    users.unshift(adminUser);
-  }
-
-  // Seed custom admin
-  const customAdminIdx = users.findIndex(u => u.role === 'admin' && u.email === 'hemasundarsai@gmail.com');
-  if (customAdminIdx !== -1) {
-    users[customAdminIdx] = customAdminUser;
-  } else {
-    users.unshift(customAdminUser);
-  }
 
   // Ensure mock users exist
   mockUsers.forEach(mu => {
@@ -343,6 +302,25 @@ function getAllUsers() { return getItem(FTM_KEYS.USERS) || []; }
 function saveUsers(users) { setItem(FTM_KEYS.USERS, users); }
 
 const BACKEND_URL = 'https://farmmart-backend-y6sn.onrender.com';
+
+function getAuthHeaders(extraHeaders = {}) {
+  const session = getSession();
+  const headers = { ...extraHeaders };
+  if (session && session.token) {
+    headers['Authorization'] = `Bearer ${session.token}`;
+  }
+  return headers;
+}
+
+async function handleResponse(response) {
+  if (response.status === 401 || response.status === 403) {
+    clearSession();
+    const pathPrefix = window.location.pathname.includes('/admin/') || window.location.pathname.includes('/user/') ? '../' : '';
+    window.location.replace(`${pathPrefix}auth.html`);
+    throw new Error('Authentication expired or access denied');
+  }
+  return response;
+}
 
 async function createUser(name, email, password, phone = '', gender = '', age = '', photo = '', role = 'user') {
   try {
@@ -545,102 +523,140 @@ function getDashboardStats() {
 
 // ── Demands API ──────────────────────────────────────────────
 async function getDemands() {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/demands`);
+    response = await fetch(`${BACKEND_URL}/api/demands`, {
+      headers: getAuthHeaders()
+    });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return data.data;
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return [];
+    }
     console.warn("Backend demands API not reachable, falling back to localStorage", err);
   }
-  return getItem(FTM_KEYS.DEMANDS) || [];
+  if (!response) {
+    return getItem(FTM_KEYS.DEMANDS) || [];
+  }
+  return [];
 }
 
 async function createDemand(storeName, itemName, quantity) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/demands`, {
+    response = await fetch(`${BACKEND_URL}/api/demands`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ storeName, itemName, quantity })
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend demands API not reachable, falling back to localStorage", err);
   }
 
-  const demands = getItem(FTM_KEYS.DEMANDS) || [];
-  const newDemand = {
-    id: 'demand-' + Date.now(),
-    storeName,
-    itemName,
-    quantity: parseFloat(quantity),
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-  demands.push(newDemand);
-  setItem(FTM_KEYS.DEMANDS, demands);
-  return { success: true, data: newDemand };
+  if (!response) {
+    const demands = getItem(FTM_KEYS.DEMANDS) || [];
+    const newDemand = {
+      id: 'demand-' + Date.now(),
+      storeName,
+      itemName,
+      quantity: parseFloat(quantity),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    demands.push(newDemand);
+    setItem(FTM_KEYS.DEMANDS, demands);
+    return { success: true, data: newDemand };
+  }
+  return { success: false, message: 'Failed to create demand on backend.' };
 }
 
 async function updateDemand(id, status) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/demands/${id}`, {
+    response = await fetch(`${BACKEND_URL}/api/demands/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ status })
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend demands API not reachable, falling back to localStorage", err);
   }
 
-  const demands = getItem(FTM_KEYS.DEMANDS) || [];
-  const idx = demands.findIndex(d => d.id === id);
-  if (idx !== -1) {
-    demands[idx].status = status;
-    setItem(FTM_KEYS.DEMANDS, demands);
-    return { success: true, data: demands[idx] };
+  if (!response) {
+    const demands = getItem(FTM_KEYS.DEMANDS) || [];
+    const idx = demands.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      demands[idx].status = status;
+      setItem(FTM_KEYS.DEMANDS, demands);
+      return { success: true, data: demands[idx] };
+    }
+    return { success: false, message: 'Demand not found' };
   }
-  return { success: false, message: 'Demand not found' };
+  return { success: false, message: 'Failed to update demand on backend.' };
 }
 
 // ── Tasks API ────────────────────────────────────────────────
 async function getTasks(assignedUser = '') {
+  let response;
   try {
     const url = assignedUser ? `${BACKEND_URL}/api/tasks?assignedUser=${assignedUser}` : `${BACKEND_URL}/api/tasks`;
-    const response = await fetch(url);
+    response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return data.data;
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return [];
+    }
     console.warn("Backend tasks API not reachable, falling back to localStorage", err);
   }
 
-  let tasks = getItem(FTM_KEYS.TASKS) || [];
-  if (assignedUser) {
-    tasks = tasks.filter(t => {
-      const uId = (t.assignedUser && typeof t.assignedUser === 'object') ? t.assignedUser.id || t.assignedUser._id : t.assignedUser;
-      return uId === assignedUser;
-    });
+  if (!response) {
+    let tasks = getItem(FTM_KEYS.TASKS) || [];
+    if (assignedUser) {
+      tasks = tasks.filter(t => {
+        const uId = (t.assignedUser && typeof t.assignedUser === 'object') ? t.assignedUser.id || t.assignedUser._id : t.assignedUser;
+        return uId === assignedUser;
+      });
+    }
+    return tasks;
   }
-  return tasks;
+  return [];
 }
 
 async function createTask(taskData) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/tasks`, {
+    response = await fetch(`${BACKEND_URL}/api/tasks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(taskData)
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
@@ -648,93 +664,116 @@ async function createTask(taskData) {
       return { success: false, message: data.message };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend tasks API not reachable, falling back to localStorage", err);
   }
 
-  const tasks = getItem(FTM_KEYS.TASKS) || [];
-  const newTask = {
-    id: 'task-' + Date.now(),
-    assignedUser: taskData.assignedUser,
-    type: taskData.type || 'procurement',
-    storeName: taskData.storeName,
-    itemName: taskData.itemName,
-    quantity: parseFloat(taskData.quantity),
-    farmer: taskData.farmer || { name: '', category: '' },
-    purchasePrice: parseFloat(taskData.purchasePrice) || 0,
-    deliveryPrice: parseFloat(taskData.deliveryPrice) || 0,
-    deliveryCharges: parseFloat(taskData.deliveryCharges) || 0,
-    paymentStatus: 'pending',
-    deliveryStatus: 'pending',
-    deadline: new Date(taskData.deadline).toISOString(),
-    createdAt: new Date().toISOString()
-  };
+  if (!response) {
+    const tasks = getItem(FTM_KEYS.TASKS) || [];
+    const newTask = {
+      id: 'task-' + Date.now(),
+      assignedUser: taskData.assignedUser,
+      type: taskData.type || 'procurement',
+      storeName: taskData.storeName,
+      itemName: taskData.itemName,
+      quantity: parseFloat(taskData.quantity),
+      farmer: taskData.farmer || { name: '', category: '' },
+      purchasePrice: parseFloat(taskData.purchasePrice) || 0,
+      deliveryPrice: parseFloat(taskData.deliveryPrice) || 0,
+      deliveryCharges: parseFloat(taskData.deliveryCharges) || 0,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date(taskData.deadline).toISOString(),
+      createdAt: new Date().toISOString()
+    };
 
-  tasks.push(newTask);
-  setItem(FTM_KEYS.TASKS, tasks);
+    tasks.push(newTask);
+    setItem(FTM_KEYS.TASKS, tasks);
 
-  // If this task was associated with a store demand, update the demand status
-  if (taskData.demandId) {
-    await updateDemand(taskData.demandId, 'assigned');
+    if (taskData.demandId) {
+      await updateDemand(taskData.demandId, 'assigned');
+    }
+
+    return { success: true, data: newTask };
   }
-
-  return { success: true, data: newTask };
+  return { success: false, message: 'Failed to create task on backend.' };
 }
 
 async function updateTask(id, updateData) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/tasks/${id}`, {
+    response = await fetch(`${BACKEND_URL}/api/tasks/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(updateData)
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend tasks API not reachable, falling back to localStorage", err);
   }
 
-  const tasks = getItem(FTM_KEYS.TASKS) || [];
-  const idx = tasks.findIndex(t => t.id === id || t._id === id);
-  if (idx !== -1) {
-    tasks[idx] = { ...tasks[idx], ...updateData };
-    setItem(FTM_KEYS.TASKS, tasks);
-    return { success: true, data: tasks[idx] };
+  if (!response) {
+    const tasks = getItem(FTM_KEYS.TASKS) || [];
+    const idx = tasks.findIndex(t => t.id === id || t._id === id);
+    if (idx !== -1) {
+      tasks[idx] = { ...tasks[idx], ...updateData };
+      setItem(FTM_KEYS.TASKS, tasks);
+      return { success: true, data: tasks[idx] };
+    }
+    return { success: false, message: 'Task not found' };
   }
-  return { success: false, message: 'Task not found' };
+  return { success: false, message: 'Failed to update task on backend.' };
 }
 
 async function updateTaskPayment(id) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/tasks/${id}/payment`, {
+    response = await fetch(`${BACKEND_URL}/api/tasks/${id}/payment`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' }
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' })
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend tasks API not reachable, falling back to localStorage", err);
   }
 
-  const tasks = getItem(FTM_KEYS.TASKS) || [];
-  const idx = tasks.findIndex(t => t.id === id || t._id === id);
-  if (idx !== -1) {
-    tasks[idx].paymentStatus = 'paid';
-    setItem(FTM_KEYS.TASKS, tasks);
-    return { success: true, data: tasks[idx] };
+  if (!response) {
+    const tasks = getItem(FTM_KEYS.TASKS) || [];
+    const idx = tasks.findIndex(t => t.id === id || t._id === id);
+    if (idx !== -1) {
+      tasks[idx].paymentStatus = 'paid';
+      setItem(FTM_KEYS.TASKS, tasks);
+      return { success: true, data: tasks[idx] };
+    }
+    return { success: false, message: 'Task not found' };
   }
-  return { success: false, message: 'Task not found' };
+  return { success: false, message: 'Failed to update payment status on backend.' };
 }
 
 async function updateTaskDelivery(id) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/tasks/${id}/delivery`, {
+    response = await fetch(`${BACKEND_URL}/api/tasks/${id}/delivery`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' }
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' })
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, data: data.data };
@@ -742,72 +781,98 @@ async function updateTaskDelivery(id) {
       return { success: false, message: data.message };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend tasks API not reachable, falling back to localStorage", err);
   }
 
-  const tasks = getItem(FTM_KEYS.TASKS) || [];
-  const idx = tasks.findIndex(t => t.id === id || t._id === id);
-  if (idx === -1) {
-    return { success: false, message: 'Task not found' };
+  if (!response) {
+    const tasks = getItem(FTM_KEYS.TASKS) || [];
+    const idx = tasks.findIndex(t => t.id === id || t._id === id);
+    if (idx === -1) {
+      return { success: false, message: 'Task not found' };
+    }
+
+    const task = tasks[idx];
+
+    if (task.paymentStatus !== 'paid') {
+      return {
+        success: false,
+        message: `Cannot deliver: Payment for "${task.itemName}" (${task.storeName}) must be cleared first.`
+      };
+    }
+
+    const uId = (task.assignedUser && typeof task.assignedUser === 'object') ? task.assignedUser.id || task.assignedUser._id : task.assignedUser;
+
+    const olderUnpaid = tasks.find(t => {
+      const tuId = (t.assignedUser && typeof t.assignedUser === 'object') ? t.assignedUser.id || t.assignedUser._id : t.assignedUser;
+      return tuId === uId &&
+             t.paymentStatus === 'pending' &&
+             new Date(t.createdAt) < new Date(task.createdAt);
+    });
+
+    if (olderUnpaid) {
+      return {
+        success: false,
+        message: `Cannot deliver: There is an older unpaid procurement for "${olderUnpaid.itemName}" (${olderUnpaid.storeName}) that must be cleared first.`
+      };
+    }
+
+    task.deliveryStatus = 'delivered';
+    setItem(FTM_KEYS.TASKS, tasks);
+    return { success: true, data: task };
   }
-
-  const task = tasks[idx];
-
-  // 1. Enforce this task is paid first
-  if (task.paymentStatus !== 'paid') {
-    return {
-      success: false,
-      message: `Cannot deliver: Payment for "${task.itemName}" (${task.storeName}) must be cleared first.`
-    };
-  }
-
-  // 2. Enforce that there are no older unpaid tasks for this user
-  const uId = (task.assignedUser && typeof task.assignedUser === 'object') ? task.assignedUser.id || task.assignedUser._id : task.assignedUser;
-  
-  const olderUnpaid = tasks.find(t => {
-    const tuId = (t.assignedUser && typeof t.assignedUser === 'object') ? t.assignedUser.id || t.assignedUser._id : t.assignedUser;
-    return tuId === uId &&
-           t.paymentStatus === 'pending' &&
-           new Date(t.createdAt) < new Date(task.createdAt);
-  });
-
-  if (olderUnpaid) {
-    return {
-      success: false,
-      message: `Cannot deliver: There is an older unpaid procurement for "${olderUnpaid.itemName}" (${olderUnpaid.storeName}) that must be cleared first.`
-    };
-  }
-
-  task.deliveryStatus = 'delivered';
-  setItem(FTM_KEYS.TASKS, tasks);
-  return { success: true, data: task };
+  return { success: false, message: 'Failed to update delivery status on backend.' };
 }
 
 async function getTaskStats(assignedUser = '') {
+  let response;
   try {
     const url = assignedUser ? `${BACKEND_URL}/api/tasks/stats?assignedUser=${assignedUser}` : `${BACKEND_URL}/api/tasks/stats`;
-    const response = await fetch(url);
+    response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return data.data;
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return {
+        totalPendingPayments: 0,
+        totalPendingDeliveries: 0,
+        totalCompleted: 0,
+        totalTasks: 0,
+        completionPercent: 0
+      };
+    }
     console.warn("Backend stats API not reachable, falling back to localStorage", err);
   }
 
-  const tasks = await getTasks(assignedUser);
-  const totalPendingPayments = tasks.filter(t => t.paymentStatus === 'pending').length;
-  const totalPendingDeliveries = tasks.filter(t => t.deliveryStatus === 'pending').length;
-  const totalCompleted = tasks.filter(t => t.deliveryStatus === 'delivered' && t.paymentStatus === 'paid').length;
-  const totalTasks = tasks.length;
-  const completionPercent = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+  if (!response) {
+    const tasks = await getTasks(assignedUser);
+    const totalPendingPayments = tasks.filter(t => t.paymentStatus === 'pending').length;
+    const totalPendingDeliveries = tasks.filter(t => t.deliveryStatus === 'pending').length;
+    const totalCompleted = tasks.filter(t => t.deliveryStatus === 'delivered' && t.paymentStatus === 'paid').length;
+    const totalTasks = tasks.length;
+    const completionPercent = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
+    return {
+      totalPendingPayments,
+      totalPendingDeliveries,
+      totalCompleted,
+      totalTasks,
+      completionPercent
+    };
+  }
   return {
-    totalPendingPayments,
-    totalPendingDeliveries,
-    totalCompleted,
-    totalTasks,
-    completionPercent
+    totalPendingPayments: 0,
+    totalPendingDeliveries: 0,
+    totalCompleted: 0,
+    totalTasks: 0,
+    completionPercent: 0
   };
 }
 
@@ -827,14 +892,14 @@ function getAllSubmittedReports() {
 
 // ── Profile and Password Management ─────────────────────────
 async function updateUserProfile(userId, name, email, phone, gender, age, photo) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/profile`, {
+    response = await fetch(`${BACKEND_URL}/api/auth/profile`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ userId, name, email, phone, gender, age, photo })
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name, email, phone, gender, age, photo }) // userId removed from request payload
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       // Sync dynamic sessionStorage
@@ -868,59 +933,65 @@ async function updateUserProfile(userId, name, email, phone, gender, age, photo)
       return { success: false, message: data.message || 'Profile update failed.' };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend API not reachable, falling back to localStorage", err);
   }
 
-  // Local storage fallback
-  const users = getAllUsers();
-  const idx = users.findIndex(u => u.id === userId);
-  if (idx === -1) {
-    return { success: false, message: 'User not found.' };
-  }
-
-  // Check email uniqueness if email is changed
-  if (email && email.toLowerCase() !== users[idx].email.toLowerCase()) {
-    const emailTaken = users.some(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== userId);
-    if (emailTaken) {
-      return { success: false, message: 'Email address is already in use.' };
+  if (!response) {
+    // Local storage fallback
+    const users = getAllUsers();
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx === -1) {
+      return { success: false, message: 'User not found.' };
     }
-    users[idx].email = email.toLowerCase();
+
+    // Check email uniqueness if email is changed
+    if (email && email.toLowerCase() !== users[idx].email.toLowerCase()) {
+      const emailTaken = users.some(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== userId);
+      if (emailTaken) {
+        return { success: false, message: 'Email address is already in use.' };
+      }
+      users[idx].email = email.toLowerCase();
+    }
+
+    if (name) users[idx].name = name;
+    if (phone !== undefined) users[idx].phone = phone;
+    if (gender !== undefined) users[idx].gender = gender;
+    if (age !== undefined) users[idx].age = parseInt(age) || 25;
+    if (photo !== undefined) users[idx].photo = photo;
+    users[idx].avatar = users[idx].name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+    saveUsers(users);
+
+    // Sync sessionStorage
+    const session = getSession();
+    if (session && session.id === userId) {
+      session.name = users[idx].name;
+      session.email = users[idx].email;
+      session.phone = users[idx].phone;
+      session.gender = users[idx].gender;
+      session.age = users[idx].age;
+      session.photo = users[idx].photo;
+      session.avatar = users[idx].avatar;
+      setSession(session);
+    }
+
+    return { success: true, user: users[idx] };
   }
-
-  if (name) users[idx].name = name;
-  if (phone !== undefined) users[idx].phone = phone;
-  if (gender !== undefined) users[idx].gender = gender;
-  if (age !== undefined) users[idx].age = parseInt(age) || 25;
-  if (photo !== undefined) users[idx].photo = photo;
-  users[idx].avatar = users[idx].name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
-  saveUsers(users);
-
-  // Sync sessionStorage
-  const session = getSession();
-  if (session && session.id === userId) {
-    session.name = users[idx].name;
-    session.email = users[idx].email;
-    session.phone = users[idx].phone;
-    session.gender = users[idx].gender;
-    session.age = users[idx].age;
-    session.photo = users[idx].photo;
-    session.avatar = users[idx].avatar;
-    setSession(session);
-  }
-
-  return { success: true, user: users[idx] };
+  return { success: false, message: 'Failed to update profile on backend.' };
 }
 
 async function updateUserPassword(userId, currentPassword, newPassword) {
+  let response;
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/password`, {
+    response = await fetch(`${BACKEND_URL}/api/auth/password`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ userId, currentPassword, newPassword })
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ currentPassword, newPassword }) // userId removed from request payload
     });
+    await handleResponse(response);
     const data = await response.json();
     if (response.ok && data.success) {
       return { success: true, message: data.message };
@@ -928,25 +999,31 @@ async function updateUserPassword(userId, currentPassword, newPassword) {
       return { success: false, message: data.message || 'Password update failed.' };
     }
   } catch (err) {
+    if (response && (response.status === 401 || response.status === 403)) {
+      return { success: false, message: 'Authentication failed.' };
+    }
     console.warn("Backend API not reachable, falling back to localStorage", err);
   }
 
-  // Local storage fallback
-  const users = getAllUsers();
-  const idx = users.findIndex(u => u.id === userId);
-  if (idx === -1) {
-    return { success: false, message: 'User not found.' };
+  if (!response) {
+    // Local storage fallback
+    const users = getAllUsers();
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx === -1) {
+      return { success: false, message: 'User not found.' };
+    }
+
+    const valid = await verifyPassword(currentPassword, users[idx].passwordHash);
+    if (!valid) {
+      return { success: false, message: 'Incorrect current password.' };
+    }
+
+    users[idx].passwordHash = await hashPassword(newPassword);
+    saveUsers(users);
+
+    return { success: true, message: 'Password updated successfully.' };
   }
-
-  const valid = await verifyPassword(currentPassword, users[idx].passwordHash);
-  if (!valid) {
-    return { success: false, message: 'Incorrect current password.' };
-  }
-
-  users[idx].passwordHash = await hashPassword(newPassword);
-  saveUsers(users);
-
-  return { success: true, message: 'Password updated successfully.' };
+  return { success: false, message: 'Failed to update password on backend.' };
 }
 
 async function requestForgotPasswordCode(email) {

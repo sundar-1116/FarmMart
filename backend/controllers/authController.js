@@ -1,23 +1,32 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
-// Token generation helper
+// Token generation helper - fails safely if secret is missing
 const generateToken = (id) => {
-  const secret = process.env.JWT_SECRET || 'farmers_to_mart_secure_token_secret_2026_jwt_auth_key';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET configuration is missing');
+  }
   return jwt.sign({ id }, secret, {
-    expiresIn: '30d'
+    expiresIn: process.env.JWT_EXPIRES_IN || '30d'
   });
 };
 
 // Register User
 // POST /api/auth/signup
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, phone, gender, age, photo, role } = req.body;
+    const { name, email, password, phone, gender, age, photo } = req.body;
 
     // Validate inputs
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide all required fields (name, email, password).' });
+    }
+
+    // Strengthen password policy check
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
     }
 
     // Check if user already exists
@@ -36,19 +45,23 @@ exports.registerUser = async (req, res) => {
       }
     }
 
+    // Public signup must ALWAYS create a normal user (no admin roles allowed)
     const newUser = await User.create({
       name,
       email: email.toLowerCase(),
       password,
-      role: role || 'user',
+      role: 'user', // strictly hardcoded to user
       phone: phone || '',
       gender: gender || '',
       age: parseInt(age) || 25,
       photo: finalPhoto,
-      online: true // signed up user is online
+      online: true
     });
 
     const token = generateToken(newUser._id);
+
+    // Security Logging
+    console.log(`[SECURITY] Successful signup for email: ${newUser.email} - Role assigned: ${newUser.role}`);
 
     return res.status(201).json({
       success: true,
@@ -64,14 +77,13 @@ exports.registerUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Registration error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during registration.' });
+    next(error);
   }
 };
 
 // Login User / Admin
 // POST /api/auth/login
-exports.loginUser = async (req, res) => {
+exports.loginUser = async (req, res, next) => {
   try {
     const { email, password, role } = req.body;
 
@@ -82,17 +94,22 @@ exports.loginUser = async (req, res) => {
     // Find user and explicitly select password field (which is normally hidden)
     const user = await User.findOne({ email: email.toLowerCase(), role }).select('+password');
     if (!user) {
+      // Security Logging for failed login
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} - Reason: User not found or role mismatch`);
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
     // Check account status
     if (user.status === 'inactive') {
+      console.warn(`[SECURITY] Forbidden login attempt for email: ${email} - Reason: Deactivated account`);
       return res.status(403).json({ success: false, message: 'Account is deactivated. Contact admin.' });
     }
 
     // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      // Security Logging for failed login
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} - Reason: Incorrect password`);
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
@@ -101,6 +118,9 @@ exports.loginUser = async (req, res) => {
     await user.save();
 
     const token = generateToken(user._id);
+
+    // Security Logging for successful login
+    console.log(`[SECURITY] Successful login for email: ${user.email} - Role: ${user.role}`);
 
     return res.status(200).json({
       success: true,
@@ -116,18 +136,17 @@ exports.loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Login error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during login.' });
+    next(error);
   }
 };
 
-// Update Profile
-exports.updateProfile = async (req, res) => {
+// Update Profile (protected, req.user holds the authenticated identity)
+exports.updateProfile = async (req, res, next) => {
   try {
-    const { userId, name, email, phone, gender, age, photo } = req.body;
-    if (!userId) {
-      return res.status(400).json({ success: false, message: 'User ID is required.' });
-    }
+    const { name, email, phone, gender, age, photo } = req.body;
+
+    // Resolve identity from authenticated session, not request body
+    const userId = req.user.id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -149,7 +168,12 @@ exports.updateProfile = async (req, res) => {
     if (age !== undefined) user.age = parseInt(age) || 25;
     if (photo !== undefined) user.photo = photo;
 
+    // Explicitly do NOT update user.role from body to prevent role elevation.
+    // It remains exactly as stored in database.
+
     await user.save();
+
+    console.log(`[SECURITY] User profile updated successfully for user ID: ${user._id}`);
 
     return res.status(200).json({
       success: true,
@@ -168,18 +192,25 @@ exports.updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`Update profile error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during profile update.' });
+    next(error);
   }
 };
 
-// Change Password (from dashboard)
-exports.changePassword = async (req, res) => {
+// Change Password (protected, req.user holds authenticated identity)
+exports.changePassword = async (req, res, next) => {
   try {
-    const { userId, currentPassword, newPassword } = req.body;
-    if (!userId || !currentPassword || !newPassword) {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
     }
+
+    // Strengthen password policy check
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
+    }
+
+    // Resolve identity from authenticated session, not request body
+    const userId = req.user.id;
 
     const user = await User.findById(userId).select('+password');
     if (!user) {
@@ -188,21 +219,24 @@ exports.changePassword = async (req, res) => {
 
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
+      console.warn(`[SECURITY] Unauthorized password change attempt for user ID: ${userId} - Reason: Incorrect current password`);
       return res.status(401).json({ success: false, message: 'Incorrect current password.' });
     }
 
     user.password = newPassword;
     await user.save();
 
+    console.log(`[SECURITY] Password changed successfully for user ID: ${userId}`);
+
     return res.status(200).json({ success: true, message: 'Password updated successfully.' });
   } catch (error) {
-    console.error(`Change password error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during password update.' });
+    next(error);
   }
 };
 
 // Forgot Password (request code)
-exports.forgotPassword = async (req, res) => {
+// POST /api/auth/forgot-password
+exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -211,70 +245,99 @@ exports.forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No user registered with this email.' });
+      // Return 200/success anyway to prevent user enumeration attacks
+      return res.status(200).json({
+        success: true,
+        message: 'If the email is registered, a reset code has been sent.'
+      });
     }
 
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    user.resetCode = code;
+    // Generate cryptographically secure 6-digit code
+    const code = crypto.randomInt(100000, 1000000).toString();
+
+    // Store only a secure SHA-256 hash of the code in the database
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+    user.resetCode = hashedCode;
     user.resetCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     await user.save();
 
-    console.log(`\n======================================================`);
-    console.log(`[MAIL SIMULATION] Reset code for ${email}: ${code}`);
-    console.log(`======================================================\n`);
+    // Security Logging
+    console.log(`[SECURITY] Password reset code generated and hashed for user: ${email}`);
+
+    // In a real application, the code is sent to the user via email.
+    // For this security milestone:
+    // 1. DO NOT return the reset code in the API response.
+    // 2. DO NOT print/log the reset code to the logs.
+    // This is a documented milestone limitation (email integration in future milestone).
 
     return res.status(200).json({
       success: true,
-      code, // return code so UI can show it for testing ease
-      message: 'Verification code sent to your email.'
+      message: 'If the email is registered, a reset code has been sent.'
     });
   } catch (error) {
-    console.error(`Forgot password error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during forgot password.' });
+    next(error);
   }
 };
 
 // Reset Password (verify code and update)
-exports.resetPassword = async (req, res) => {
+// POST /api/auth/reset-password
+exports.resetPassword = async (req, res, next) => {
   try {
     const { email, code, newPassword } = req.body;
     if (!email || !code || !newPassword) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase(), resetCode: code });
+    // Strengthen password policy check
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    // Hash the input code before comparing with database record
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+    const user = await User.findOne({ email: email.toLowerCase(), resetCode: hashedCode });
     if (!user) {
+      console.warn(`[SECURITY] Password reset attempt failed for: ${email} - Reason: Invalid code`);
       return res.status(400).json({ success: false, message: 'Invalid verification code or email.' });
     }
 
     if (new Date() > user.resetCodeExpires) {
+      console.warn(`[SECURITY] Password reset attempt failed for: ${email} - Reason: Expired code`);
       return res.status(400).json({ success: false, message: 'Verification code has expired.' });
     }
 
+    // Update password, clear reset fields
     user.password = newPassword;
     user.resetCode = '';
     user.resetCodeExpires = null;
     await user.save();
 
+    console.log(`[SECURITY] Password reset successfully completed for user: ${email}`);
+
     return res.status(200).json({ success: true, message: 'Password has been reset successfully.' });
   } catch (error) {
-    console.error(`Reset password error: ${error.message}`);
-    return res.status(500).json({ success: false, message: 'Server error during password reset.' });
+    next(error);
   }
 };
 
-// Seed default Platform Admin account
+// Seed default Platform Admin account using environment variables (no hardcoded passwords)
 exports.seedAdmin = async () => {
   try {
-    // 1. Seed original default admin
-    const adminEmail = 'admin@gmail.';
-    const adminExists = await User.findOne({ email: adminEmail });
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      console.log('Seeding skipped: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are not set.');
+      return;
+    }
+
+    const adminExists = await User.findOne({ email: adminEmail.toLowerCase() });
     if (!adminExists) {
       await User.create({
         name: 'Platform Admin',
-        email: adminEmail,
-        password: 'admin',
+        email: adminEmail.toLowerCase(),
+        password: adminPassword, // will be hashed automatically by userSchema pre-save hook
         role: 'admin',
         phone: '9999999999',
         gender: 'Other',
@@ -282,43 +345,7 @@ exports.seedAdmin = async () => {
         photo: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23b8860b"/><circle cx="50" cy="40" r="20" fill="%23fff"/><path d="M20 85c0-15 15-25 30-25s30 10 30 25z" fill="%23ddd"/></svg>`,
         online: false
       });
-      console.log('Seeded platform admin successfully.');
-    }
-
-    // 2. Seed custom admin
-    const customAdminEmail = 'hemasundarsai@gmail.com';
-    const customAdminExists = await User.findOne({ email: customAdminEmail });
-    if (!customAdminExists) {
-      await User.create({
-        name: 'Hema Sundar Sai',
-        email: customAdminEmail,
-        password: 'hemasundar',
-        role: 'admin',
-        phone: '9876543210',
-        gender: 'Male',
-        age: 26,
-        photo: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23b8860b"/><circle cx="50" cy="40" r="20" fill="%23fff"/><path d="M20 85c0-15 15-25 30-25s30 10 30 25z" fill="%23ddd"/></svg>`,
-        online: false
-      });
-      console.log('Seeded custom admin successfully.');
-    }
-
-    // 3. Seed custom user
-    const customUserEmail = 'user1@user.com';
-    const customUserExists = await User.findOne({ email: customUserEmail });
-    if (!customUserExists) {
-      await User.create({
-        name: 'Test Consumer',
-        email: customUserEmail,
-        password: 'user@123',
-        role: 'user',
-        phone: '9876543211',
-        gender: 'Male',
-        age: 28,
-        photo: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e3d2c"/><circle cx="50" cy="40" r="20" fill="%2360a5fa"/><path d="M20 85c0-15 15-25 30-25s30 10 30 25z" fill="%232563eb"/></svg>`,
-        online: false
-      });
-      console.log('Seeded custom user successfully.');
+      console.log(`[SECURITY] Seeded platform admin: ${adminEmail.toLowerCase()}`);
     }
   } catch (error) {
     console.error(`Error seeding admin: ${error.message}`);
