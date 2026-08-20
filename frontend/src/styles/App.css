@@ -1,0 +1,197 @@
+/* Minimal structural styling for FarmMart 2.0 React Foundation */
+:root {
+  --bg-primary: #0a0f0d;
+  --bg-secondary: #121915;
+  --text-primary: #f0fdf4;
+  --text-secondary: #86efac;
+  --border-color: rgba(34, 197, 94, 0.2);
+  --primary-color: #22c55e;
+  --error-color: #ef4444;
+  --padding-md: 16px;
+  --radius-md: 8px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layouts */
+.public-layout, .auth-layout, .admin-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-brand {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+}
+
+.nav-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.nav-link:hover {
+  color: var(--primary-color);
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Forms */
+.form-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 400px;
+  margin: 40px auto;
+}
+
+.form-title {
+  margin-top: 0;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--bg-primary);
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.form-btn:hover {
+  opacity: 0.9;
+}
+
+.form-error {
+  color: var(--error-color);
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+}
+
+.form-link {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+/* Legacy Switcher Banner */
+.legacy-banner {
+  background-color: rgba(234, 179, 8, 0.15);
+  border-bottom: 1px solid rgb(234, 179, 8);
+  color: #fef08a;
+  text-align: center;
+  padding: 8px;
+  font-size: 0.85rem;
+}
+
+.legacy-link {
+  color: #fef08a;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+/* Panels / Placeholders */
+.placeholder-section {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.placeholder-badge {
+  display: inline-block;
+  background-color: var(--border-color);
+  color: var(--text-secondary);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
