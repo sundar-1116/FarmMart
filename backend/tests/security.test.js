@@ -19,8 +19,8 @@ describe('FarmMart Backend Security Hardening Tests', () => {
   let app;
   let mongoServer;
   let dbConnection;
-  let testUser, testAdmin, testOtherUser;
-  let userToken, adminToken, otherUserToken;
+  let testUser, testAdmin, testOtherUser, testFarmerUser;
+  let userToken, adminToken, otherUserToken, farmerToken;
 
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
@@ -48,12 +48,12 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     await Task.deleteMany({});
     await Demand.deleteMany({});
 
-    // Create test user (min password length is 8)
+    // Create test user (buyer)
     testUser = await User.create({
-      name: 'Regular User',
-      email: 'user@farmmart.com',
-      password: 'userpassword123',
-      role: 'user',
+      name: 'Regular Buyer',
+      email: 'buyer@farmmart.com',
+      password: 'buyerpassword123',
+      role: 'buyer',
       status: 'active'
     });
 
@@ -66,10 +66,18 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     });
 
     testOtherUser = await User.create({
-      name: 'Other User',
-      email: 'other@farmmart.com',
+      name: 'Other Buyer',
+      email: 'otherbuyer@farmmart.com',
       password: 'otherpassword123',
-      role: 'user',
+      role: 'buyer',
+      status: 'active'
+    });
+
+    testFarmerUser = await User.create({
+      name: 'Regular Farmer',
+      email: 'farmer@farmmart.com',
+      password: 'farmerpassword123',
+      role: 'farmer',
       status: 'active'
     });
 
@@ -77,6 +85,7 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     userToken = jwt.sign({ id: testUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     adminToken = jwt.sign({ id: testAdmin._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     otherUserToken = jwt.sign({ id: testOtherUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    farmerToken = jwt.sign({ id: testFarmerUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   });
 
   // 1. Successful login
@@ -84,15 +93,16 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'user@farmmart.com',
-        password: 'userpassword123',
-        role: 'user'
+        email: 'buyer@farmmart.com',
+        password: 'buyerpassword123',
+        role: 'buyer'
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.token).toBeDefined();
-    expect(res.body.user.email).toBe('user@farmmart.com');
+    expect(res.body.user.email).toBe('buyer@farmmart.com');
+    expect(res.body.user.role).toBe('buyer'); // derived from DB
   });
 
   // 2. Invalid password
@@ -100,9 +110,9 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'user@farmmart.com',
+        email: 'buyer@farmmart.com',
         password: 'wrongpassword',
-        role: 'user'
+        role: 'buyer'
       });
 
     expect(res.status).toBe(401);
@@ -156,17 +166,16 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       .put('/api/auth/profile')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        userId: testOtherUser._id.toString(), // Attacker tries to target other user
+        userId: testOtherUser._id.toString(),
         name: 'Attacker Updated Name'
       });
 
     expect(res.status).toBe(200);
-    // Profile updated should be for testUser, not testOtherUser
     const updatedUser = await User.findById(testUser._id);
     expect(updatedUser.name).toBe('Attacker Updated Name');
 
     const otherUser = await User.findById(testOtherUser._id);
-    expect(otherUser.name).toBe('Other User'); // remains unchanged
+    expect(otherUser.name).toBe('Other Buyer'); // remains unchanged
   });
 
   // 8. BOLA: User cannot change another user's password
@@ -175,12 +184,11 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       .post('/api/auth/password')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        userId: testOtherUser._id.toString(), // Attacker targets other user
-        currentPassword: 'userpassword123',
+        userId: testOtherUser._id.toString(),
+        currentPassword: 'buyerpassword123',
         newPassword: 'newpassword123'
       });
 
-    // It will change the password of testUser, not testOtherUser
     expect(res.status).toBe(200);
 
     const userWithPw = await User.findById(testUser._id).select('+password');
@@ -188,22 +196,77 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     expect(match).toBe(true);
   });
 
-  // 9. Role hijacking prevention: Public signup cannot create admin
-  test('Public signup forces role to user, ignoring role: admin payload', async () => {
+  // 9. Signups and role restrictions
+  test('Public signup defaults to role: buyer if role is omitted', async () => {
     const res = await request(app)
       .post('/api/auth/signup')
       .send({
-        name: 'Malicious Admin',
-        email: 'attacker@farmmart.com',
-        password: 'attackpassword123',
-        role: 'admin' // Attempting to sign up as admin
+        name: 'Default Buyer',
+        email: 'defaultbuyer@farmmart.com',
+        password: 'buyerpassword123'
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.user.role).toBe('user'); // Forced to user
+    expect(res.body.user.role).toBe('buyer');
 
-    const userInDb = await User.findOne({ email: 'attacker@farmmart.com' });
-    expect(userInDb.role).toBe('user');
+    const userInDb = await User.findOne({ email: 'defaultbuyer@farmmart.com' });
+    expect(userInDb.role).toBe('buyer');
+  });
+
+  test('Public signup allows role: buyer', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        name: 'Explicit Buyer',
+        email: 'explicitbuyer@farmmart.com',
+        password: 'buyerpassword123',
+        role: 'buyer'
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.role).toBe('buyer');
+  });
+
+  test('Public signup allows role: farmer', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        name: 'Explicit Farmer',
+        email: 'explicitfarmer@farmmart.com',
+        password: 'farmerpassword123',
+        role: 'farmer'
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.role).toBe('farmer');
+  });
+
+  test('Public signup rejects role: admin with 400', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        name: 'Fake Admin',
+        email: 'fakeadmin@farmmart.com',
+        password: 'adminpassword123',
+        role: 'admin'
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('Public signup rejects role: user with 400', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({
+        name: 'Legacy User',
+        email: 'legacyuser@farmmart.com',
+        password: 'userpassword123',
+        role: 'user' // invalid role now
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
   });
 
   // 10. Password policy check
@@ -213,7 +276,7 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       .send({
         name: 'Weak Pass User',
         email: 'weak@farmmart.com',
-        password: 'weak' // only 4 chars
+        password: 'weak'
       });
 
     expect(res.status).toBe(400);
@@ -225,13 +288,13 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     const code = '123456';
     const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
 
-    // Create user with expired reset code
-    const expiredUser = await User.create({
+    await User.create({
       name: 'Expired Token User',
       email: 'expired@farmmart.com',
       password: 'password123',
+      role: 'buyer',
       resetCode: hashedCode,
-      resetCodeExpires: new Date(Date.now() - 1000) // expired 1s ago
+      resetCodeExpires: new Date(Date.now() - 1000)
     });
 
     const res = await request(app)
@@ -255,11 +318,11 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       name: 'Reset User',
       email: 'reset@farmmart.com',
       password: 'password123',
+      role: 'buyer',
       resetCode: hashedCode,
-      resetCodeExpires: new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+      resetCodeExpires: new Date(Date.now() + 15 * 60 * 1000)
     });
 
-    // 1st reset (should succeed)
     const res1 = await request(app)
       .post('/api/auth/reset-password')
       .send({
@@ -270,7 +333,6 @@ describe('FarmMart Backend Security Hardening Tests', () => {
 
     expect(res1.status).toBe(200);
 
-    // 2nd reset with same code (should fail)
     const res2 = await request(app)
       .post('/api/auth/reset-password')
       .send({
@@ -286,7 +348,7 @@ describe('FarmMart Backend Security Hardening Tests', () => {
   test('Rate limiting headers are returned on auth routes', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'user@farmmart.com', password: 'userpassword123', role: 'user' });
+      .send({ email: 'buyer@farmmart.com', password: 'buyerpassword123', role: 'buyer' });
 
     expect(res.headers['x-ratelimit-limit']).toBeDefined();
     expect(res.headers['x-ratelimit-remaining']).toBeDefined();
@@ -296,15 +358,14 @@ describe('FarmMart Backend Security Hardening Tests', () => {
   test('Errors in production environment are sanitized to database_error', async () => {
     process.env.NODE_ENV = 'production';
 
-    // Trigger a database validation error by trying to update user with invalid fields
     const res = await request(app)
       .put('/api/auth/profile')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        email: 'invalid-email-format' // invalid format triggers database error
+        email: 'invalid-email-format'
       });
 
-    expect(res.status).toBe(500); // MongoDB validation errors bubble up as 500
+    expect(res.status).toBe(500);
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe('DATABASE_ERROR');
     expect(res.body.error.message).toBe('An internal system error occurred');
@@ -312,17 +373,17 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     process.env.NODE_ENV = 'test'; // restore
   });
 
-  // 15. RBAC checks on administrator-level operations
+  // 15. RBAC checks on tasks and demands
   test('RBAC: Unauthenticated request to unfiltered tasks endpoint returns 401', async () => {
     const res = await request(app)
-      .get('/api/tasks'); // unfiltered request
+      .get('/api/tasks');
 
     expect(res.status).toBe(401);
   });
 
-  test('RBAC: Authenticated normal user accessing unfiltered tasks endpoint returns 403', async () => {
+  test('RBAC: Authenticated normal user (buyer) accessing unfiltered tasks endpoint returns 403', async () => {
     const res = await request(app)
-      .get('/api/tasks') // unfiltered request
+      .get('/api/tasks')
       .set('Authorization', `Bearer ${userToken}`);
 
     expect(res.status).toBe(403);
@@ -331,10 +392,58 @@ describe('FarmMart Backend Security Hardening Tests', () => {
 
   test('RBAC: Authenticated admin accessing unfiltered tasks endpoint succeeds', async () => {
     const res = await request(app)
-      .get('/api/tasks') // unfiltered request
+      .get('/api/tasks')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  test('RBAC: Farmer cannot access tasks endpoint (returns 403)', async () => {
+    const res = await request(app)
+      .get('/api/tasks')
+      .set('Authorization', `Bearer ${farmerToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  test('RBAC: Buyer cannot access admin demands creation (POST /api/demands returns 403)', async () => {
+    const res = await request(app)
+      .post('/api/demands')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        storeName: 'Test Store',
+        itemName: 'Crops',
+        quantity: 100
+      });
+
+    expect(res.status).toBe(403);
+  });
+
+  test('RBAC: Farmer cannot access admin demands creation (POST /api/demands returns 403)', async () => {
+    const res = await request(app)
+      .post('/api/demands')
+      .set('Authorization', `Bearer ${farmerToken}`)
+      .send({
+        storeName: 'Test Store',
+        itemName: 'Crops',
+        quantity: 100
+      });
+
+    expect(res.status).toBe(403);
+  });
+
+  test('RBAC: Admin can access demands creation (POST /api/demands returns 201)', async () => {
+    const res = await request(app)
+      .post('/api/demands')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        storeName: 'Test Store',
+        itemName: 'Crops',
+        quantity: 100
+      });
+
+    expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
   });
 
@@ -344,12 +453,12 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       .put('/api/auth/profile')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        role: 'admin' // Attempt to elevate role to admin
+        role: 'admin'
       });
 
     expect(res.status).toBe(200);
 
     const userInDb = await User.findById(testUser._id);
-    expect(userInDb.role).toBe('user'); // Remains user
+    expect(userInDb.role).toBe('buyer'); // remains buyer
   });
 });

@@ -659,7 +659,7 @@
     if (!tbody) return;
     tbody.replaceChildren();
 
-    const users = getAllUsers().filter(u => u.role === 'user');
+    const users = getAllUsers().filter(u => u.role === 'buyer' || u.role === 'farmer');
 
     if (!users.length) {
       const tr = document.createElement('tr');
@@ -1746,7 +1746,7 @@
     usersDef.textContent = '-- Choose User --';
     userSelect.appendChild(usersDef);
 
-    const users = getAllUsers().filter(u => u.role === 'user' && u.status === 'active');
+    const users = getAllUsers().filter(u => (u.role === 'buyer' || u.role === 'farmer') && u.status === 'active');
     users.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id;
@@ -1781,7 +1781,7 @@
     if (!grid) return;
     grid.replaceChildren();
 
-    const users = getAllUsers().filter(u => u.role === 'user');
+    const users = getAllUsers().filter(u => u.role === 'buyer' || u.role === 'farmer');
     const tasks = await getTasks();
 
     if (users.length === 0) {

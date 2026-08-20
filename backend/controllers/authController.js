@@ -45,12 +45,19 @@ exports.registerUser = async (req, res, next) => {
       }
     }
 
-    // Public signup must ALWAYS create a normal user (no admin roles allowed)
+    // Validate requested role: only allow 'buyer' or 'farmer' for public registration
+    const { role } = req.body;
+    if (role && !['buyer', 'farmer'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid signup role. Only buyer or farmer roles are permitted.' });
+    }
+
+    const assignedRole = role || 'buyer';
+
     const newUser = await User.create({
       name,
       email: email.toLowerCase(),
       password,
-      role: 'user', // strictly hardcoded to user
+      role: assignedRole,
       phone: phone || '',
       gender: gender || '',
       age: parseInt(age) || 25,
@@ -92,10 +99,16 @@ exports.loginUser = async (req, res, next) => {
     }
 
     // Find user and explicitly select password field (which is normally hidden)
-    const user = await User.findOne({ email: email.toLowerCase(), role }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user) {
       // Security Logging for failed login
-      console.warn(`[SECURITY] Failed login attempt for email: ${email} - Reason: User not found or role mismatch`);
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} - Reason: User not found`);
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    // Role consistency check - verifies submitted role matches database role, never grants privileges based on request payload
+    if (role && user.role !== role) {
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} - Reason: Role mismatch (submitted: ${role}, actual: ${user.role})`);
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 

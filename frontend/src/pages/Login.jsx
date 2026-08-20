@@ -8,7 +8,7 @@ export default function Login() {
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user'); // Default to current backend role 'user'
+  const [role, setRole] = useState('buyer'); // Default to buyer
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -70,11 +70,12 @@ export default function Login() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="user">User (Farmers & Buyers)</option>
+            <option value="buyer">Buyer</option>
+            <option value="farmer">Farmer</option>
             <option value="admin">Administrator</option>
           </select>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            * Note: Role is validated exactly against current backend contract ('user' / 'admin').
+            * Note: Role is validated exactly against the database role.
           </p>
         </div>
 

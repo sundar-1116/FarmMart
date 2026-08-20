@@ -13,6 +13,7 @@ export default function Signup() {
   const [age, setAge] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [role, setRole] = useState('buyer');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -34,6 +35,7 @@ export default function Signup() {
       phone,
       gender,
       age: parseInt(age) || 25,
+      role,
       photo: '' // backend will generate default SVG
     });
 
@@ -134,6 +136,18 @@ export default function Signup() {
               placeholder="e.g. 28"
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">I want to register as a:</label>
+          <select
+            className="form-input"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="buyer">Buyer / Retailer</option>
+            <option value="farmer">Farmer / Grower</option>
+          </select>
         </div>
 
         <button type="submit" className="form-btn" disabled={loading}>

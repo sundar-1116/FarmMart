@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
               id: session.id,
               name: session.name,
               email: session.email,
-              role: session.role, // Temporary legacy role 'user' or 'admin' returned by backend
+              role: session.role, // User role: 'buyer', 'farmer', or 'admin'
               avatar: session.avatar
             });
           }
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
           id: res.user.id,
           name: res.user.name,
           email: res.user.email,
-          role: res.user.role, // This preserves the 'user' or 'admin' role returned by the backend
+          role: res.user.role, // Authenticated role from database ('buyer', 'farmer', 'admin')
           avatar: res.user.avatar || '',
           token: res.token,
           loginTime: Date.now()

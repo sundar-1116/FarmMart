@@ -122,14 +122,13 @@ const SEED_REPORTS = {
 
 // ── Initialize Data ──────────────────────────────────────────
 async function initializeData() {
-  // Seed mock users with complete profile details
   const mockUsers = [
     {
       id: 'user-priya',
       name: 'Priya Sharma',
       email: 'priya.sharma@gmail.com',
       passwordHash: await hashPassword('password123'),
-      role: 'user',
+      role: 'buyer',
       joinDate: '2023-02-15',
       status: 'active',
       avatar: 'PS',
@@ -144,7 +143,7 @@ async function initializeData() {
       name: 'Arjun Reddy',
       email: 'arjun.reddy@gmail.com',
       passwordHash: await hashPassword('password123'),
-      role: 'user',
+      role: 'buyer',
       joinDate: '2023-03-10',
       status: 'active',
       avatar: 'AR',
@@ -159,7 +158,7 @@ async function initializeData() {
       name: 'Kavya Nair',
       email: 'kavya.nair@gmail.com',
       passwordHash: await hashPassword('password123'),
-      role: 'user',
+      role: 'buyer',
       joinDate: '2023-04-18',
       status: 'active',
       avatar: 'KN',
@@ -174,7 +173,7 @@ async function initializeData() {
       name: 'Rohan Mehta',
       email: 'rohan.mehta@gmail.com',
       passwordHash: await hashPassword('password123'),
-      role: 'user',
+      role: 'buyer',
       joinDate: '2023-05-22',
       status: 'inactive',
       avatar: 'RM',
@@ -189,7 +188,7 @@ async function initializeData() {
       name: 'Test Consumer',
       email: 'user1@user.com',
       passwordHash: await hashPassword('user@123'),
-      role: 'user',
+      role: 'buyer',
       joinDate: '2023-05-23',
       status: 'active',
       avatar: 'TC',
@@ -514,7 +513,7 @@ function getReports() { return getItem(FTM_KEYS.REPORTS) || SEED_REPORTS; }
 
 // ── Stats ────────────────────────────────────────────────────
 function getDashboardStats() {
-  const users = getAllUsers().filter(u => u.role === 'user');
+  const users = getAllUsers().filter(u => u.role === 'buyer' || u.role === 'farmer');
   const farmers = getAllFarmers();
   const stores = getAllStores();
   const pendingQueries = getPendingQueryCount();

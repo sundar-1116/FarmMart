@@ -10,9 +10,9 @@
 
   // ── Session Check & Authentication ──────────────────────────
   const session = getSession();
-  if (!session || session.role !== 'user') {
+  if (!session || !['buyer', 'farmer'].includes(session.role)) {
     // Unauthorized access — redirect to login
-    window.location.replace('../auth.html?role=user');
+    window.location.replace('../auth.html?role=buyer');
     return;
   }
 
@@ -131,7 +131,7 @@
     clearSession();
     showToast('Logged out successfully.', 'info');
     setTimeout(() => {
-      window.location.replace('../auth.html?role=user');
+      window.location.replace('../auth.html?role=buyer');
     }, 800);
   };
 

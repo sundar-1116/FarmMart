@@ -38,16 +38,19 @@ sequenceDiagram
 ## 2. Authorization & RBAC
 
 The system implements Role-Based Access Control (RBAC) supporting the following roles:
-- **`user`** (corresponds to buyers/distributors)
-- **`admin`** (platform administrators)
-- *(Note: Schema extensible to support future roles: `farmer`, `buyer`)*
+- **`buyer`** (corresponds to brokers/distributors/retailers claiming demands and executing tasks)
+- **`farmer`** (corresponds to crop producers/growers who can view profiles and store demands)
+- **`admin`** (platform administrators with full management privileges)
 
 ### Scoping Rules:
 - **Tasks & Stats**:
-  - Regular `user` accounts can ONLY view and edit tasks assigned to themselves.
-  - Requesting all tasks without a filter is restricted to `admin` accounts (returns `403 Forbidden` if requested by a normal user).
+  - Regular `buyer` accounts can ONLY view, edit, and pay/deliver tasks assigned to themselves.
+  - Access to all task endpoints is completely restricted from `farmer` accounts (returns `403 Forbidden`).
+  - Requesting all tasks without a filter is restricted to `admin` accounts (returns `403 Forbidden` if requested by a normal buyer).
 - **Demands**:
-  - Demand endpoints (`POST /api/demands` and `PUT /api/demands/:id`) are authenticated operations accessible to both users and admins to ensure procurement task claiming continues to work properly.
+  - Creating demands (`POST /api/demands`) is restricted strictly to `admin`.
+  - Claiming store demands (`PUT /api/demands/:id`) is permitted for `buyer` and `admin` roles, and denied for `farmer`.
+  - Viewing demands (`GET /api/demands`) is an authenticated operation open to all roles.
 
 ---
 

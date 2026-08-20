@@ -8,9 +8,8 @@
   'use strict';
 
   // ── Read & validate role from URL ───────────────────────────
-  const params = new URLSearchParams(window.location.search);
-  const rawRole = params.get('role') || 'user';
-  const role = ['admin', 'user'].includes(rawRole) ? rawRole : 'user';
+  const rawRole = params.get('role') || 'buyer';
+  const role = ['admin', 'buyer', 'farmer'].includes(rawRole) ? rawRole : 'buyer';
 
   // ── Redirect if already logged in ───────────────────────────
   const existing = getSession();
@@ -87,8 +86,10 @@
       if (tabSU)   tabSU.classList.add('hidden'); // Hide Sign Up tab for Admin
       if (tabs)    tabs.style.gridTemplateColumns = '1fr'; // Only show Login tab
       if (footer)  footer.classList.add('hidden'); // Hide sign up footer links for Admin
-    } else {
-      if (chip)    { chip.className = 'role-chip user'; chip.textContent = '💻 User Access'; }
+      if (chip) {
+        chip.className = `role-chip ${role}`;
+        chip.textContent = role === 'farmer' ? '👨‍🌾 Farmer Access' : '💻 Buyer Access';
+      }
       if (title)   title.textContent = 'Welcome Back';
     }
   }
@@ -400,9 +401,9 @@
         document.getElementById('signup-details-panel').classList.add('hidden');
         document.getElementById('signup-2fa-panel').classList.remove('hidden');
       } else {
-        const res = await createUser(name, email, pw, phone, gender, age, photoDataUrl, 'user');
+        const res = await createUser(name, email, pw, phone, gender, age, photoDataUrl, role);
         if (res.success) {
-          await loginUser(email, pw, 'user');
+          await loginUser(email, pw, role);
           toast(`Account created! Welcome, ${name}! 🌾`, 'success');
           setTimeout(() => window.location.replace('user/dashboard.html'), 900);
         } else {
@@ -490,7 +491,7 @@
         document.body.removeChild(overlay);
         const res = await createUser(acc.name, acc.email, 'google-' + Date.now());
         // createUser fails if email exists — that's ok, just login
-        await loginUser(acc.email, 'google-' + Date.now(), 'user').catch(() => {});
+        await loginUser(acc.email, 'google-' + Date.now(), 'buyer').catch(() => {});
         // Force session for Google users
         const users = getAllUsers();
         let u = users.find(x => x.email === acc.email);
@@ -500,7 +501,7 @@
           u = r2.user;
         }
         if (u) {
-          setSession({ id: u.id, name: u.name, email: u.email, role: 'user', avatar: u.avatar, loginTime: Date.now() });
+          setSession({ id: u.id, name: u.name, email: u.email, role: 'buyer', avatar: u.avatar, loginTime: Date.now() });
           toast(`Signed in as ${u.name} 🎉`, 'success');
           setTimeout(() => window.location.replace('user/dashboard.html'), 800);
         }

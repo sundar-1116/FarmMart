@@ -23,3 +23,6 @@ yarn-error.log*
 
 # Vite build output
 frontend/dist/
+
+# Migration Audit Logs
+backend/scripts/migrated-users.json
