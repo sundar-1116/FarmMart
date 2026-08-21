@@ -112,7 +112,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  createDemand: async (storeName, itemName, quantity) => {
+  createDemand: async ({ storeName, itemName, quantity }) => {
     const res = await fetch(`${API_URL}/api/demands`, {
       method: 'POST',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),

@@ -46,6 +46,10 @@ exports.getTasks = async (req, res, next) => {
 // Create a new task (Admin assigned or User claimed)
 // POST /api/tasks
 exports.createTask = async (req, res, next) => {
+  const mongoose = require('mongoose');
+  let demandUpdated = false;
+  let taskId = null;
+  const { demandId } = req.body;
   try {
     const {
       assignedUser,
@@ -57,8 +61,7 @@ exports.createTask = async (req, res, next) => {
       purchasePrice,
       deliveryPrice,
       deliveryCharges,
-      deadline,
-      demandId
+      deadline
     } = req.body;
 
     if (!assignedUser || !storeName || !itemName || !quantity || !deadline) {
@@ -88,8 +91,25 @@ exports.createTask = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Assigned user not found' });
     }
 
+    // Pre-generate unique task identifier to track demand reservation ownership
+    taskId = new mongoose.Types.ObjectId();
+
+    // Atomic Demand claim status check & update
+    if (demandId) {
+      const updatedDemand = await Demand.findOneAndUpdate(
+        { _id: demandId, status: 'pending' },
+        { $set: { status: 'assigned', claimedByTask: taskId } },
+        { new: true }
+      );
+      if (!updatedDemand) {
+        return res.status(409).json({ success: false, message: 'Demand has already been claimed or is unavailable.' });
+      }
+      demandUpdated = true;
+    }
+
     // Create the task
     const task = await Task.create({
+      _id: taskId,
       assignedUser,
       type: type || 'procurement',
       storeName,
@@ -104,20 +124,17 @@ exports.createTask = async (req, res, next) => {
       deadline: new Date(deadline)
     });
 
-    // If this was linked to a store demand, update the demand status
-    if (demandId) {
-      const demand = await Demand.findById(demandId);
-      if (demand) {
-        demand.status = 'assigned';
-        await demand.save();
-      }
-    }
-
     // Security Logging
     console.log(`[SECURITY] Task created successfully by user: ${req.user.email} (Assigned to user: ${user.email})`);
 
     return res.status(201).json({ success: true, data: task });
   } catch (error) {
+    if (demandId && demandUpdated && taskId) {
+      await Demand.updateOne(
+        { _id: demandId, claimedByTask: taskId },
+        { $set: { status: 'pending', claimedByTask: null } }
+      );
+    }
     next(error);
   }
 };
@@ -271,6 +288,11 @@ exports.updateTask = async (req, res, next) => {
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       return next(error);
+    }
+
+    // Lock check: prevent modification if paid or delivered
+    if (task.paymentStatus === 'paid' || task.deliveryStatus === 'delivered') {
+      return res.status(400).json({ success: false, message: 'Cannot modify details of a paid or delivered procurement task.' });
     }
 
     if (farmer) task.farmer = farmer;

@@ -12,6 +12,6 @@ router.route('/')
   .post(requireRole('admin'), createDemand);
 
 router.route('/:id')
-  .put(requireRole('buyer', 'admin'), updateDemand);
+  .put(requireRole('admin'), updateDemand);
 
 module.exports = router;

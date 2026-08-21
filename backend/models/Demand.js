@@ -21,6 +21,11 @@ const demandSchema = new mongoose.Schema({
     enum: ['pending', 'assigned', 'completed'],
     default: 'pending'
   },
+  claimedByTask: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

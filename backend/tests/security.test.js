@@ -507,4 +507,299 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     expect(res.body.error.code).toBe('FORBIDDEN');
     expect(res.body.error.message).toBe("Access denied: Cannot view other users' tasks");
   });
+
+  // 19. FarmMart 2.6 Regression Tests
+  test('A. createDemand endpoint accepts request matching the admin form', async () => {
+    const res = await request(app)
+      .post('/api/demands')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        storeName: 'Reliance Fresh',
+        itemName: 'Apples',
+        quantity: 300
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.storeName).toBe('Reliance Fresh');
+  });
+
+  test('B. Claiming an already-assigned demand is rejected with 409', async () => {
+    const demand = await Demand.create({
+      storeName: 'Reliance Fresh',
+      itemName: 'Oranges',
+      quantity: 150,
+      status: 'assigned'
+    });
+
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        assignedUser: testUser._id.toString(),
+        type: 'procurement',
+        storeName: demand.storeName,
+        itemName: demand.itemName,
+        quantity: demand.quantity,
+        deadline: new Date(Date.now() + 86400000).toISOString(),
+        demandId: demand._id.toString()
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('C. Concurrent claim attempts cannot create duplicate tasks', async () => {
+    const demand = await Demand.create({
+      storeName: 'Target Store',
+      itemName: 'Bananas',
+      quantity: 200,
+      status: 'pending'
+    });
+
+    const taskData = {
+      assignedUser: testUser._id.toString(),
+      type: 'procurement',
+      storeName: demand.storeName,
+      itemName: demand.itemName,
+      quantity: demand.quantity,
+      deadline: new Date(Date.now() + 86400000).toISOString(),
+      demandId: demand._id.toString()
+    };
+
+    // Fire two concurrent requests in parallel
+    const [res1, res2] = await Promise.all([
+      request(app).post('/api/tasks').set('Authorization', `Bearer ${userToken}`).send(taskData),
+      request(app).post('/api/tasks').set('Authorization', `Bearer ${userToken}`).send(taskData)
+    ]);
+
+    // One must succeed, one must fail with 409
+    const statuses = [res1.status, res2.status];
+    expect(statuses).toContain(201);
+    expect(statuses).toContain(409);
+
+    // Verify only one task was actually saved in DB
+    const count = await Task.countDocuments({ storeName: 'Target Store', itemName: 'Bananas' });
+    expect(count).toBe(1);
+  });
+
+  test('D. Paid task detail modification is rejected with 400', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Store A',
+      itemName: 'Crop A',
+      quantity: 50,
+      paymentStatus: 'paid',
+      deliveryStatus: 'pending',
+      deadline: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        purchasePrice: 100
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('E. Delivered task detail modification is rejected with 400', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Store B',
+      itemName: 'Crop B',
+      quantity: 50,
+      paymentStatus: 'pending',
+      deliveryStatus: 'delivered',
+      deadline: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        deliveryPrice: 200
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('F. Existing unpaid and undelivered task detail modification still works', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Store C',
+      itemName: 'Crop C',
+      quantity: 50,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        purchasePrice: 150
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.purchasePrice).toBe(150);
+  });
+
+  test('G. Existing task payment endpoint still works', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Store D',
+      itemName: 'Crop D',
+      quantity: 50,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}/payment`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.paymentStatus).toBe('paid');
+  });
+
+  test('H. Existing task delivery endpoint still works when paid', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Store E',
+      itemName: 'Crop E',
+      quantity: 50,
+      paymentStatus: 'paid',
+      deliveryStatus: 'pending',
+      deadline: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}/delivery`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.deliveryStatus).toBe('delivered');
+  });
+
+  test('I. Verify PUT /api/demands/:id authorization behavior', async () => {
+    const demand = await Demand.create({
+      storeName: 'Reliance Store',
+      itemName: 'Grapes',
+      quantity: 100,
+      status: 'pending'
+    });
+
+    // 1. Admin can update a demand where intended
+    const resAdmin = await request(app)
+      .put(`/api/demands/${demand._id.toString()}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'assigned' });
+    expect(resAdmin.status).toBe(200);
+
+    // 2. Buyer cannot manually set a demand to assigned
+    const resBuyerAssign = await request(app)
+      .put(`/api/demands/${demand._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ status: 'assigned' });
+    expect(resBuyerAssign.status).toBe(403);
+
+    // 3. Buyer cannot manually set a demand to completed
+    const resBuyerComplete = await request(app)
+      .put(`/api/demands/${demand._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ status: 'completed' });
+    expect(resBuyerComplete.status).toBe(403);
+
+    // 4. Buyer cannot manually reset a demand to pending
+    const resBuyerPending = await request(app)
+      .put(`/api/demands/${demand._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ status: 'pending' });
+    expect(resBuyerPending.status).toBe(403);
+  });
+
+  test('J. Verify non-admin users cannot perform admin-only demands creation', async () => {
+    const res = await request(app)
+      .post('/api/demands')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        storeName: 'Banned Store',
+        itemName: 'Crop',
+        quantity: 10
+      });
+
+    expect(res.status).toBe(403);
+  });
+
+  test('K. Failed task creation leaves demand pending', async () => {
+    const demand = await Demand.create({
+      storeName: 'Error Store',
+      itemName: 'Error Item',
+      quantity: 100,
+      status: 'pending'
+    });
+
+    const spy = jest.spyOn(Task, 'create').mockRejectedValueOnce(new Error('Simulated Task insertion failure'));
+
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        assignedUser: testUser._id.toString(),
+        type: 'procurement',
+        storeName: demand.storeName,
+        itemName: demand.itemName,
+        quantity: demand.quantity,
+        deadline: new Date(Date.now() + 86400000).toISOString(),
+        demandId: demand._id.toString()
+      });
+
+    expect(res.status).toBe(500);
+
+    // Verify demand status reverted to pending
+    const checkDemand = await Demand.findById(demand._id);
+    expect(checkDemand.status).toBe('pending');
+    expect(checkDemand.claimedByTask).toBeNull();
+
+    spy.mockRestore();
+  });
+
+  test('L. Failed claim cannot revert another successful claim', async () => {
+    const demand = await Demand.create({
+      storeName: 'Isolation Store',
+      itemName: 'Isolation Item',
+      quantity: 100,
+      status: 'pending'
+    });
+
+    // 1. Successful claimant A claims demand
+    const taskIdA = new mongoose.Types.ObjectId();
+    demand.status = 'assigned';
+    demand.claimedByTask = taskIdA;
+    await demand.save();
+
+    const taskIdB = new mongoose.Types.ObjectId();
+
+    // Trigger B's rollback query directly to verify it has no effect on A's assignment
+    const updateResult = await Demand.updateOne(
+      { _id: demand._id, claimedByTask: taskIdB },
+      { $set: { status: 'pending', claimedByTask: null } }
+    );
+
+    expect(updateResult.matchedCount).toBe(0);
+
+    // Verify demand remains assigned to A
+    const checkDemand = await Demand.findById(demand._id);
+    expect(checkDemand.status).toBe('assigned');
+    expect(checkDemand.claimedByTask.toString()).toBe(taskIdA.toString());
+  });
 });
