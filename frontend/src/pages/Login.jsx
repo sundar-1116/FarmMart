@@ -23,7 +23,9 @@ export default function Login() {
     setLoading(false);
 
     if (result.success) {
-      navigate(from, { replace: true });
+      const userRole = result.user?.role || role;
+      const targetPath = userRole === 'admin' ? '/admin' : '/dashboard';
+      navigate(targetPath, { replace: true });
     } else {
       setError(result.message);
     }

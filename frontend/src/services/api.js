@@ -32,7 +32,10 @@ const handleResponse = async (response) => {
       sessionStorage.removeItem('ftm_session');
     }
     
-    throw new Error(errorData.error?.message || errorData.message || `Request failed with status ${response.status}`);
+    const errMsg = errorData.error?.message || errorData.message || `Request failed with status ${response.status}`;
+    const error = new Error(errMsg);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 };

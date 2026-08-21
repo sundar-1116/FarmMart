@@ -42,9 +42,9 @@ export default function Signup() {
     setLoading(false);
 
     if (result.success) {
-      setSuccess('Registration successful! Redirecting to login...');
+      setSuccess('Registration successful! Redirecting to dashboard...');
       setTimeout(() => {
-        navigate('/login');
+        navigate('/dashboard');
       }, 1500);
     } else {
       setError(result.message);

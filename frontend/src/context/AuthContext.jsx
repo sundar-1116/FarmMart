@@ -9,26 +9,67 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize authentication state from sessionStorage (shared with legacy frontend)
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       const sessionRaw = sessionStorage.getItem('ftm_session');
-      if (sessionRaw) {
-        try {
-          const session = JSON.parse(sessionRaw);
-          if (session && session.token) {
-            setUser({
-              id: session.id,
-              name: session.name,
-              email: session.email,
-              role: session.role, // User role: 'buyer', 'farmer', or 'admin'
-              avatar: session.avatar
-            });
-          }
-        } catch (e) {
-          console.error('Error restoring auth session:', e);
-          sessionStorage.removeItem('ftm_session');
-        }
+      if (!sessionRaw) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      let session;
+      try {
+        session = JSON.parse(sessionRaw);
+        if (!session || !session.token) {
+          throw new Error('Invalid session structure');
+        }
+      } catch (e) {
+        console.error('Error parsing session on startup:', e);
+        sessionStorage.removeItem('ftm_session');
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await api.getProfile();
+        if (res.success && res.user) {
+          const updatedUser = {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            role: res.user.role,
+            avatar: res.user.photo || ''
+          };
+          setUser(updatedUser);
+
+          const updatedSession = {
+            ...session,
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            role: res.user.role,
+            avatar: res.user.photo || ''
+          };
+          sessionStorage.setItem('ftm_session', JSON.stringify(updatedSession));
+        }
+      } catch (err) {
+        console.error('Startup session validation failed:', err);
+        if (err.status === 401) {
+          sessionStorage.removeItem('ftm_session');
+          setUser(null);
+        } else {
+          // err.status === 403, 500, or network/connection error: preserve session
+          setUser({
+            id: session.id,
+            name: session.name,
+            email: session.email,
+            role: session.role,
+            avatar: session.avatar
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
     };
     initAuth();
   }, []);
@@ -48,14 +89,15 @@ export const AuthProvider = ({ children }) => {
           loginTime: Date.now()
         };
         sessionStorage.setItem('ftm_session', JSON.stringify(session));
-        setUser({
+        const authenticatedUser = {
           id: session.id,
           name: session.name,
           email: session.email,
           role: session.role,
           avatar: session.avatar
-        });
-        return { success: true };
+        };
+        setUser(authenticatedUser);
+        return { success: true, user: authenticatedUser };
       }
       return { success: false, message: res.message || 'Login failed' };
     } catch (err) {
@@ -74,6 +116,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await api.signup(userData);
+      if (res.success && res.token) {
+        const session = {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role,
+          avatar: res.user.avatar || '',
+          token: res.token,
+          loginTime: Date.now()
+        };
+        sessionStorage.setItem('ftm_session', JSON.stringify(session));
+        const authenticatedUser = {
+          id: session.id,
+          name: session.name,
+          email: session.email,
+          role: session.role,
+          avatar: session.avatar
+        };
+        setUser(authenticatedUser);
+        return { success: true, user: authenticatedUser };
+      }
       return { success: true, user: res.user };
     } catch (err) {
       return { success: false, message: err.message || 'Signup failed' };
@@ -82,10 +145,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const res = await api.getProfile();
+      if (res.success && res.user) {
+        const updatedUser = {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role,
+          avatar: res.user.photo || ''
+        };
+        setUser(updatedUser);
+
+        const sessionRaw = sessionStorage.getItem('ftm_session');
+        if (sessionRaw) {
+          const session = JSON.parse(sessionRaw);
+          const updatedSession = {
+            ...session,
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            role: res.user.role,
+            avatar: res.user.photo || ''
+          };
+          sessionStorage.setItem('ftm_session', JSON.stringify(updatedSession));
+        }
+        return { success: true };
+      }
+      return { success: false, message: 'Failed to refresh profile' };
+    } catch (err) {
+      if (err.status === 401) {
+        sessionStorage.removeItem('ftm_session');
+        setUser(null);
+      }
+      return { success: false, message: err.message || 'Failed to refresh profile' };
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, logout, signup }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, logout, signup, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
