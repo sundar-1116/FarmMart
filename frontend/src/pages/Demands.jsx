@@ -14,6 +14,7 @@ export default function Demands() {
   const [quantity, setQuantity] = useState('');
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [claimingIds, setClaimingIds] = useState(new Set());
 
   const fetchDemands = async () => {
     try {
@@ -37,7 +38,15 @@ export default function Demands() {
   }, []);
 
   const handleClaim = async (demand) => {
+    const demandId = demand._id || demand.id;
+    if (claimingIds.has(demandId)) return;
+
     try {
+      setClaimingIds(prev => {
+        const next = new Set(prev);
+        next.add(demandId);
+        return next;
+      });
       setError('');
       const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const taskData = {
@@ -51,7 +60,7 @@ export default function Demands() {
         deliveryPrice: 0,
         deliveryCharges: 0,
         deadline,
-        demandId: demand._id || demand.id
+        demandId
       };
 
       const res = await api.createTask(taskData);
@@ -63,6 +72,12 @@ export default function Demands() {
       }
     } catch (err) {
       setError(err.message || 'An error occurred while claiming the demand');
+    } finally {
+      setClaimingIds(prev => {
+        const next = new Set(prev);
+        next.delete(demandId);
+        return next;
+      });
     }
   };
 
@@ -201,8 +216,9 @@ export default function Demands() {
                         onClick={() => handleClaim(demand)}
                         className="form-btn"
                         style={{ padding: '6px 12px', fontSize: '0.8rem', width: 'auto' }}
+                        disabled={claimingIds.has(demand._id || demand.id)}
                       >
-                        Claim Demand
+                        {claimingIds.has(demand._id || demand.id) ? 'Claiming...' : 'Claim Demand'}
                       </button>
                     ) : user?.role === 'buyer' ? (
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Claimed</span>
