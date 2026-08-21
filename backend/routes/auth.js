@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, updateProfile, changePassword, forgotPassword, resetPassword } = require('../controllers/authController');
+const { registerUser, loginUser, updateProfile, changePassword, forgotPassword, resetPassword, getProfile } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { authLimiter } = require('../middleware/rateLimiter');
 
@@ -11,6 +11,7 @@ router.post('/signup', authLimiter, registerUser);
 router.post('/login', authLimiter, loginUser);
 
 // Profile endpoints (authenticated)
+router.get('/profile', authMiddleware, getProfile);
 router.put('/profile', authMiddleware, updateProfile);
 router.post('/password', authMiddleware, changePassword);
 

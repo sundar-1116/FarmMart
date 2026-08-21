@@ -364,3 +364,32 @@ exports.seedAdmin = async () => {
     console.error(`Error seeding admin: ${error.message}`);
   }
 };
+
+// Get Profile details of authenticated user
+// GET /api/auth/profile
+exports.getProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        gender: user.gender,
+        age: user.age,
+        photo: user.photo,
+        online: user.online,
+        status: user.status
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

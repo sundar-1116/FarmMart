@@ -27,8 +27,8 @@ const handleResponse = async (response) => {
       errorData = { message: 'An unknown error occurred' };
     }
     
-    if (response.status === 401 || response.status === 403) {
-      // Clear session on authorization failure
+    if (response.status === 401) {
+      // Clear session on authentication failure
       sessionStorage.removeItem('ftm_session');
     }
     
@@ -129,7 +129,19 @@ export const api = {
 
   // ── Tasks ──
   getTasks: async (assignedUser = '') => {
-    const query = assignedUser ? `?assignedUser=${assignedUser}` : '';
+    let queryUser = assignedUser;
+    const sessionRaw = sessionStorage.getItem('ftm_session');
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw);
+        if (session && session.role !== 'admin') {
+          queryUser = session.id;
+        }
+      } catch (e) {
+        console.error('Error parsing session in getTasks:', e);
+      }
+    }
+    const query = queryUser ? `?assignedUser=${queryUser}` : '';
     const res = await fetch(`${API_URL}/api/tasks${query}`, {
       headers: getAuthHeaders(),
     });
@@ -171,7 +183,19 @@ export const api = {
   },
 
   getTaskStats: async (assignedUser = '') => {
-    const query = assignedUser ? `?assignedUser=${assignedUser}` : '';
+    let queryUser = assignedUser;
+    const sessionRaw = sessionStorage.getItem('ftm_session');
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw);
+        if (session && session.role !== 'admin') {
+          queryUser = session.id;
+        }
+      } catch (e) {
+        console.error('Error parsing session in getTaskStats:', e);
+      }
+    }
+    const query = queryUser ? `?assignedUser=${queryUser}` : '';
     const res = await fetch(`${API_URL}/api/tasks/stats${query}`, {
       headers: getAuthHeaders(),
     });

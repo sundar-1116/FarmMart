@@ -461,4 +461,50 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     const userInDb = await User.findById(testUser._id);
     expect(userInDb.role).toBe('buyer'); // remains buyer
   });
+
+  // 17. GET /api/auth/profile tests
+  test('GET /api/auth/profile returns 200 and user data for authenticated requests', async () => {
+    const res = await request(app)
+      .get('/api/auth/profile')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user.email).toBe('buyer@farmmart.com');
+    expect(res.body.user.role).toBe('buyer');
+
+    // Ensure sensitive fields are not returned
+    expect(res.body.user.password).toBeUndefined();
+    expect(res.body.user.passwordHash).toBeUndefined();
+    expect(res.body.user.resetCode).toBeUndefined();
+    expect(res.body.user.resetCodeExpires).toBeUndefined();
+  });
+
+  test('GET /api/auth/profile returns 401 for unauthenticated requests', async () => {
+    const res = await request(app)
+      .get('/api/auth/profile');
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  // 18. Task API Scoping tests
+  test('RBAC: Non-admin task requests with matching assignedUser succeed', async () => {
+    const res = await request(app)
+      .get(`/api/tasks?assignedUser=${testUser._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  test('RBAC: Non-admin task requests with arbitrary assignedUser values fail with 403', async () => {
+    const res = await request(app)
+      .get(`/api/tasks?assignedUser=${testOtherUser._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.body.error.message).toBe("Access denied: Cannot view other users' tasks");
+  });
 });
