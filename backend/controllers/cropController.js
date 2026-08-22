@@ -9,6 +9,9 @@ exports.getCrops = async (req, res, next) => {
 
     // Support optional filters: farmer, category, status
     if (req.query.farmer) {
+      if (req.user.role === 'farmer' && req.query.farmer.toString() !== req.user.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied: Farmers can only query their own inventory' });
+      }
       filter.farmer = req.query.farmer;
     }
     if (req.query.category) {
@@ -16,6 +19,17 @@ exports.getCrops = async (req, res, next) => {
     }
     if (req.query.status) {
       filter.status = req.query.status;
+    }
+
+    // Security: Only admins and the owner themselves can retrieve unavailable crops.
+    if (req.user.role !== 'admin') {
+      if (req.user.role === 'buyer') {
+        filter.status = 'available';
+      } else if (req.user.role === 'farmer') {
+        if (!filter.farmer || filter.farmer.toString() !== req.user.id.toString()) {
+          filter.status = 'available';
+        }
+      }
     }
 
     const crops = await Crop.find(filter)

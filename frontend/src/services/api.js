@@ -194,5 +194,47 @@ export const api = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+
+  // ── Crops ──
+  getCrops: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_URL}/api/crops${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getCropById: async (id) => {
+    const res = await fetch(`${API_URL}/api/crops/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  createCrop: async (cropData) => {
+    const res = await fetch(`${API_URL}/api/crops`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(cropData),
+    });
+    return handleResponse(res);
+  },
+
+  updateCrop: async (id, cropData) => {
+    const res = await fetch(`${API_URL}/api/crops/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(cropData),
+    });
+    return handleResponse(res);
+  },
+
+  deleteCrop: async (id) => {
+    const res = await fetch(`${API_URL}/api/crops/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
   }
 };

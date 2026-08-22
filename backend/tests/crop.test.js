@@ -624,4 +624,130 @@ describe('FarmMart Backend Crop Inventory & API Integration Tests', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.itemName).toBe('Red Apples');
   });
+
+  // 28. Category filtering query parameter works
+  test('28. Category filtering query parameter works', async () => {
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Toor Dal',
+      category: 'pulses',
+      quantity: 100,
+      availableQuantity: 100,
+      unit: 'kg',
+      price: 130,
+      location: 'Visakhapatnam, AP',
+      status: 'available'
+    });
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Organic Tomatoes',
+      category: 'vegetables',
+      quantity: 50,
+      availableQuantity: 50,
+      unit: 'kg',
+      price: 30,
+      location: 'Warangal, TS',
+      status: 'available'
+    });
+
+    const res = await request(app)
+      .get('/api/crops?category=pulses')
+      .set('Authorization', `Bearer ${buyerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].name).toBe('Toor Dal');
+  });
+
+  // 29. Farmer querying their own ID succeeds
+  test('29. Farmer querying their own ID succeeds', async () => {
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Toor Dal',
+      category: 'pulses',
+      quantity: 100,
+      availableQuantity: 100,
+      unit: 'kg',
+      price: 130,
+      location: 'Visakhapatnam, AP',
+      status: 'available'
+    });
+
+    const res = await request(app)
+      .get(`/api/crops?farmer=${farmerA._id}`)
+      .set('Authorization', `Bearer ${farmerAToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+  });
+
+  // 30. Farmer querying another farmer ID fails with 403 Forbidden
+  test('30. Farmer querying another farmer ID fails with 403 Forbidden', async () => {
+    const res = await request(app)
+      .get(`/api/crops?farmer=${farmerB._id}`)
+      .set('Authorization', `Bearer ${farmerAToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+  });
+
+  // 31. Buyer/other users querying only receive available crops (unavailable crops are filtered out)
+  test('31. Buyer/other users querying only receive available crops', async () => {
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Available Tomatoes',
+      category: 'vegetables',
+      quantity: 100,
+      availableQuantity: 100,
+      unit: 'kg',
+      price: 30,
+      location: 'Warangal, TS',
+      status: 'available'
+    });
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Unavailable Mangoes',
+      category: 'fruits',
+      quantity: 50,
+      availableQuantity: 50,
+      unit: 'kg',
+      price: 120,
+      location: 'Guntur, AP',
+      status: 'unavailable'
+    });
+
+    const res = await request(app)
+      .get('/api/crops')
+      .set('Authorization', `Bearer ${buyerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].name).toBe('Available Tomatoes');
+  });
+
+  // 32. Admin querying other farmer ID succeeds
+  test('32. Admin querying other farmer ID succeeds', async () => {
+    await Crop.create({
+      farmer: farmerA._id,
+      name: 'Organic Tomatoes',
+      category: 'vegetables',
+      quantity: 100,
+      availableQuantity: 100,
+      unit: 'kg',
+      price: 30,
+      location: 'Warangal, TS',
+      status: 'available'
+    });
+
+    const res = await request(app)
+      .get(`/api/crops?farmer=${farmerA._id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+  });
 });
