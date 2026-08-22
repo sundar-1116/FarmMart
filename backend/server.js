@@ -57,6 +57,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/demands', require('./routes/demands'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/crops', require('./routes/crops'));
 
 // Root endpoint
 app.get('/', (req, res) => {
