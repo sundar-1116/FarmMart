@@ -26,14 +26,15 @@ export default function Marketplace() {
 
   const filteredProducts = STATIC_HARVEST_PRODUCTS.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.farmer.toLowerCase().includes(searchTerm.toLowerCase());
+                          product.farmer.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <div className="grid-bg-effect">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
+    <div className="grid-bg-effect" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Title */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', animation: 'fadeInUp 0.4s ease-out' }}>
         <div>
           <h2 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 8px 0' }}>Crops Marketplace</h2>
           <p style={{ color: 'var(--text-light)', margin: 0 }}>
@@ -45,41 +46,25 @@ export default function Marketplace() {
         </span>
       </div>
 
-      {/* Filter controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', marginBottom: '36px', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      {/* Filter Row */}
+      <div className="demands-filters-container" style={{ animation: 'fadeInUp 0.45s ease-out' }}>
+        <div className="marketplace-tabs-container">
           {['all', 'fruits', 'vegetables', 'flowers', 'pulses'].map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              style={{
-                width: 'auto',
-                padding: '10px 28px',
-                fontSize: '1.05rem',
-                fontWeight: '700',
-                backgroundColor: selectedCategory === cat ? 'var(--primary-color)' : '#2edd6a',
-                border: '1.5px solid #020704',
-                color: '#000000',
-                borderRadius: 'var(--radius-full)',
-                boxShadow: 'none',
-                cursor: 'pointer',
-                transition: 'var(--transition-fast)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className={`marketplace-tab ${selectedCategory === cat ? 'active' : ''}`}
             >
               {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
             </button>
           ))}
         </div>
 
-        <div className="input-icon-wrapper" style={{ minWidth: '280px' }}>
-          <span className="input-icon">🔍</span>
+        <div className="demands-search-wrapper" style={{ minWidth: '280px', flex: '1 1 300px' }}>
+          <span className="demands-search-icon">🔍</span>
           <input
             type="text"
-            className="form-input"
-            style={{ paddingLeft: '40px' }}
+            className="demands-search-input"
             placeholder="Search crop or farmer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -87,38 +72,41 @@ export default function Marketplace() {
         </div>
       </div>
 
+      {/* Crop Cards list */}
       {filteredProducts.length === 0 ? (
-        <div className="empty-state">
-          No crops found matching your search.
+        <div className="empty-state" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(0, 255, 157, 0.04)', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <span style={{ fontSize: '1.75rem' }}>🌾</span>
+          </div>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: '700' }}>No crops found</h4>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>No crops found matching your search parameters.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+        <div className="marketplace-grid">
           {filteredProducts.map((product, idx) => (
-            <div key={idx} className="card" style={{ display: 'flex', gap: '16px', padding: '20px' }}>
-              <div style={{
-                fontSize: '2.5rem',
-                width: '64px',
-                height: '64px',
-                background: 'rgba(16, 185, 129, 0.04)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifycontent: 'center',
-                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
-                flexShrink: 0
-              }}>
-                <span style={{ margin: 'auto' }}>{product.ico}</span>
+            <div
+              key={idx}
+              className="card marketplace-card"
+              style={{
+                animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+                animationDelay: `${idx * 0.04}s`
+              }}
+            >
+              <div className="marketplace-crop-icon-wrapper">
+                <span>{product.ico}</span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700' }}>{product.name}</h4>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)' }}>{product.name}</h4>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>🧑‍🌾 Farmer: <strong style={{ color: '#fff' }}>{product.farmer}</strong></div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📍 Origin: {product.location}</div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(0, 255, 136, 0.08)', paddingTop: '12px' }}>
                   <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-color)' }}>{product.price}</span>
-                  <span className="badge badge-pending" style={{ fontSize: '0.75rem' }}>⭐ {product.rating}</span>
+                  <span className="marketplace-rating-badge">
+                    <span>⭐</span>
+                    <span>{product.rating}</span>
+                  </span>
                 </div>
               </div>
             </div>

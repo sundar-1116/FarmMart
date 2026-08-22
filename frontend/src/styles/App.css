@@ -1559,3 +1559,112 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Marketplace Tab Filters & Grid Layout */
+.marketplace-tabs-container {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.marketplace-tab {
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background-color: #2edd6a;
+  border: 1px solid #020704;
+  color: #000;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marketplace-tab:hover {
+  background-color: var(--primary-color);
+  border-color: #020704;
+}
+
+.marketplace-tab.active {
+  background-color: var(--primary-color);
+  border-color: #020704;
+  box-shadow: none;
+}
+
+/* Crop Grid */
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .marketplace-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1299px) {
+  .marketplace-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1300px) {
+  .marketplace-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Crop Cards */
+.marketplace-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  transition: var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.marketplace-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.08);
+}
+
+.marketplace-crop-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background: rgba(0, 255, 136, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+  font-size: 2.25rem;
+  transition: var(--transition-normal);
+}
+
+.marketplace-card:hover .marketplace-crop-icon-wrapper {
+  background: rgba(0, 255, 136, 0.08);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.25);
+  transform: scale(1.05);
+}
+
+.marketplace-rating-badge {
+  font-size: 0.75rem;
+  background-color: rgba(251, 191, 36, 0.08);
+  border: 1px solid var(--border-accent);
+  color: var(--accent-color);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

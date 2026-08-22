@@ -86,23 +86,100 @@ export default function AdminDashboard() {
     );
   }
 
+  // Calculate live dashboard stats
+  const totalDemands = demands.length;
+  const pendingDemands = demands.filter(d => d.status === 'pending').length;
+  const totalTasks = tasks.length;
+  const activeTasks = tasks.filter(t => t.deliveryStatus === 'pending').length;
+  const completedTasks = tasks.filter(t => t.deliveryStatus === 'delivered').length;
+
   return (
-    <div className="grid-bg-effect">
-      <div style={{ marginBottom: '32px' }}>
+    <div className="grid-bg-effect" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Title */}
+      <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
         <h2 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 8px 0' }}>Admin Console Home</h2>
         <p style={{ color: 'var(--text-light)', margin: 0 }}>
-          Overview of store demands and buyer procurement tasks.
+          Overview of store demands, system tasks, and procurement progress.
         </p>
       </div>
 
       {error && <div className="form-error" style={{ marginBottom: '24px' }}>⚠️ {error}</div>}
 
+      {/* Admin Statistics Row */}
+      <div className="stats-row">
+        {/* Stat 1 */}
+        <div
+          className="card stat-card"
+          style={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: '0.05s'
+          }}
+        >
+          <div className="stat-label">Total Demands</div>
+          <div className="stat-value">{totalDemands}</div>
+          <div className="stat-change text-info">📌 Active Demands</div>
+        </div>
+
+        {/* Stat 2 */}
+        <div
+          className="card stat-card"
+          style={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: '0.1s'
+          }}
+        >
+          <div className="stat-label">Pending Demands</div>
+          <div className="stat-value" style={{ color: 'var(--accent-color)' }}>{pendingDemands}</div>
+          <div className="stat-change text-warning">⏳ Awaiting claims</div>
+        </div>
+
+        {/* Stat 3 */}
+        <div
+          className="card stat-card"
+          style={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: '0.15s'
+          }}
+        >
+          <div className="stat-label">Total Tasks</div>
+          <div className="stat-value">{totalTasks}</div>
+          <div className="stat-change text-info">⚙️ Active Workflows</div>
+        </div>
+
+        {/* Stat 4 */}
+        <div
+          className="card stat-card"
+          style={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: '0.2s'
+          }}
+        >
+          <div className="stat-label">Active Tasks</div>
+          <div className="stat-value" style={{ color: 'var(--accent-color)' }}>{activeTasks}</div>
+          <div className="stat-change text-warning">🚚 In Transit / Procurement</div>
+        </div>
+
+        {/* Stat 5 */}
+        <div
+          className="card stat-card"
+          style={{
+            animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+            animationDelay: '0.25s'
+          }}
+        >
+          <div className="stat-label">Completed Tasks</div>
+          <div className="stat-value" style={{ color: 'var(--primary-color)' }}>{completedTasks}</div>
+          <div className="stat-change text-success">✅ Delivered to Retailers</div>
+        </div>
+      </div>
+
+      {/* Main content grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '30px', alignItems: 'start' }}>
 
         {/* Left Column: Create Demand & Demands List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
 
-          <div className="card" style={{ borderLeft: '4px solid var(--primary-color)' }}>
+          <div className="card" style={{ borderLeft: '4px solid var(--primary-color)', animation: 'fadeInUp 0.45s ease-out' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>Create Store Demand</h3>
             {formError && <div className="form-error" style={{ marginBottom: '16px', fontSize: '0.85rem' }}>⚠️ {formError}</div>}
 
@@ -147,12 +224,12 @@ export default function AdminDashboard() {
             </form>
           </div>
 
-          <div className="card">
+          <div className="card" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
               Current Demands ({demands.length})
             </h3>
             {demands.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No demands active.</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '16px 0' }}>No demands active.</div>
             ) : (
               <div className="table-container" style={{ maxHeight: '350px', overflowY: 'auto', marginTop: 0 }}>
                 <table className="custom-table">
@@ -165,8 +242,14 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {demands.map(demand => (
-                      <tr key={demand._id || demand.id}>
+                    {demands.map((demand, idx) => (
+                      <tr
+                        key={demand._id || demand.id}
+                        style={{
+                          animation: 'fadeInUp 0.35s ease-out both',
+                          animationDelay: `${idx * 0.03}s`
+                        }}
+                      >
                         <td style={{ fontWeight: '700' }}>{demand.storeName}</td>
                         <td style={{ color: 'var(--text-light)' }}>{demand.itemName}</td>
                         <td>{demand.quantity} kg</td>
@@ -185,12 +268,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Column: All Tasks List */}
-        <div className="card">
+        <div className="card" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
             System Tasks ({tasks.length})
           </h3>
           {tasks.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No tasks created yet.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '16px 0' }}>No tasks created yet.</div>
           ) : (
             <div className="table-container" style={{ maxHeight: '780px', overflowY: 'auto', marginTop: 0 }}>
               <table className="custom-table">
@@ -202,8 +285,14 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tasks.map(task => (
-                    <tr key={task._id || task.id}>
+                  {tasks.map((task, idx) => (
+                    <tr
+                      key={task._id || task.id}
+                      style={{
+                        animation: 'fadeInUp 0.35s ease-out both',
+                        animationDelay: `${idx * 0.03}s`
+                      }}
+                    >
                       <td>
                         <div style={{ fontWeight: '700' }}>{task.itemName}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Store: {task.storeName}</div>
