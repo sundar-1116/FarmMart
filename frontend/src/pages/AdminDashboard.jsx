@@ -78,28 +78,37 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return <div className="loading-state" style={{ padding: '40px', textAlign: 'center' }}>Loading admin console...</div>;
+    return (
+      <div className="loading-state">
+        <div className="loading-spinner"></div>
+        <p>Loading admin console...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="admin-dashboard-container" style={{ padding: '24px' }}>
-      <h2>Admin Console Home</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-        Overview of store demands and buyer procurement tasks.
-      </p>
+    <div className="grid-bg-effect">
+      <div style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 8px 0' }}>Admin Console Home</h2>
+        <p style={{ color: 'var(--text-light)', margin: 0 }}>
+          Overview of store demands and buyer procurement tasks.
+        </p>
+      </div>
 
-      {error && <div style={{ color: 'var(--error-color)', padding: '12px', marginBottom: '16px', border: '1px solid var(--error-color)', borderRadius: '6px' }}>⚠️ {error}</div>}
+      {error && <div className="form-error" style={{ marginBottom: '24px' }}>⚠️ {error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '30px', alignItems: 'start' }}>
 
         {/* Left Column: Create Demand & Demands List */}
-        <div>
-          <div style={{ marginBottom: '24px', padding: '20px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 16px 0' }}>Create Store Demand</h3>
-            {formError && <div style={{ color: 'var(--error-color)', marginBottom: '12px', fontSize: '0.85rem' }}>⚠️ {formError}</div>}
-            <form onSubmit={handleCreateDemand} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+          <div className="card" style={{ borderLeft: '4px solid var(--primary-color)' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>Create Store Demand</h3>
+            {formError && <div className="form-error" style={{ marginBottom: '16px', fontSize: '0.85rem' }}>⚠️ {formError}</div>}
+
+            <form onSubmit={handleCreateDemand} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px' }}>Store Name</label>
+                <label className="form-label">Store Name</label>
                 <input
                   type="text"
                   className="form-input"
@@ -110,7 +119,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px' }}>Item/Crop Name</label>
+                <label className="form-label">Item/Crop Name</label>
                 <input
                   type="text"
                   className="form-input"
@@ -121,7 +130,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px' }}>Required Quantity (kg)</label>
+                <label className="form-label">Required Quantity (kg)</label>
                 <input
                   type="number"
                   className="form-input"
@@ -132,35 +141,37 @@ export default function AdminDashboard() {
                   required
                 />
               </div>
-              <button type="submit" className="form-btn" style={{ marginTop: '6px' }} disabled={submitting}>
+              <button type="submit" className="form-btn" style={{ marginTop: '12px' }} disabled={submitting}>
                 {submitting ? 'Creating...' : 'Create Demand'}
               </button>
             </form>
           </div>
 
-          <div style={{ padding: '20px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 12px 0' }}>Current Demands ({demands.length})</h3>
+          <div className="card">
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+              Current Demands ({demands.length})
+            </h3>
             {demands.length === 0 ? (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No demands active.</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No demands active.</div>
             ) : (
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <div className="table-container" style={{ maxHeight: '350px', overflowY: 'auto', marginTop: 0 }}>
+                <table className="custom-table">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                      <th style={{ padding: '8px' }}>Store</th>
-                      <th style={{ padding: '8px' }}>Item</th>
-                      <th style={{ padding: '8px' }}>Qty</th>
-                      <th style={{ padding: '8px' }}>Status</th>
+                    <tr>
+                      <th style={{ padding: '12px' }}>Store</th>
+                      <th style={{ padding: '12px' }}>Item</th>
+                      <th style={{ padding: '12px' }}>Qty</th>
+                      <th style={{ padding: '12px' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {demands.map(demand => (
-                      <tr key={demand._id || demand.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '8px' }}>{demand.storeName}</td>
-                        <td style={{ padding: '8px' }}>{demand.itemName}</td>
-                        <td style={{ padding: '8px' }}>{demand.quantity} kg</td>
-                        <td style={{ padding: '8px' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: demand.status === 'pending' ? '#b8860b' : '#38a169' }}>
+                      <tr key={demand._id || demand.id}>
+                        <td style={{ fontWeight: '700' }}>{demand.storeName}</td>
+                        <td style={{ color: 'var(--text-light)' }}>{demand.itemName}</td>
+                        <td>{demand.quantity} kg</td>
+                        <td>
+                          <span className={`badge ${demand.status === 'pending' ? 'badge-pending' : 'badge-success'}`} style={{ fontSize: '0.7rem' }}>
                             {demand.status}
                           </span>
                         </td>
@@ -174,31 +185,39 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Column: All Tasks List */}
-        <div style={{ padding: '20px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-          <h3 style={{ margin: '0 0 12px 0' }}>System Tasks ({tasks.length})</h3>
+        <div className="card">
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+            System Tasks ({tasks.length})
+          </h3>
           {tasks.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No tasks created yet.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No tasks created yet.</div>
           ) : (
-            <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <div className="table-container" style={{ maxHeight: '780px', overflowY: 'auto', marginTop: 0 }}>
+              <table className="custom-table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                    <th style={{ padding: '8px' }}>Task/Store</th>
-                    <th style={{ padding: '8px' }}>User</th>
-                    <th style={{ padding: '8px' }}>Status</th>
+                  <tr>
+                    <th style={{ padding: '12px' }}>Task/Store</th>
+                    <th style={{ padding: '12px' }}>User</th>
+                    <th style={{ padding: '12px' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tasks.map(task => (
-                    <tr key={task._id || task.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '8px' }}>
-                        <div style={{ fontWeight: 'bold' }}>{task.itemName}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Store: {task.storeName}</div>
+                    <tr key={task._id || task.id}>
+                      <td>
+                        <div style={{ fontWeight: '700' }}>{task.itemName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Store: {task.storeName}</div>
                       </td>
-                      <td style={{ padding: '8px', fontSize: '0.8rem' }}>{task.assignedUser?.name || 'Unknown'}</td>
-                      <td style={{ padding: '8px' }}>
-                        <div style={{ fontSize: '0.7rem' }}>Pay: {task.paymentStatus}</div>
-                        <div style={{ fontSize: '0.7rem' }}>Deliv: {task.deliveryStatus}</div>
+                      <td style={{ fontSize: '0.85rem', fontWeight: '600' }}>{task.assignedUser?.name || 'Unknown'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={`badge ${task.paymentStatus === 'paid' ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '0.65rem', textAlign: 'center', padding: '2px 6px' }}>
+                            Pay: {task.paymentStatus}
+                          </span>
+                          <span className={`badge ${task.deliveryStatus === 'delivered' ? 'badge-success' : 'badge-pending'}`} style={{ fontSize: '0.65rem', textAlign: 'center', padding: '2px 6px' }}>
+                            Deliv: {task.deliveryStatus}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}

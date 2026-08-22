@@ -32,63 +32,93 @@ export default function Marketplace() {
   });
 
   return (
-    <div className="marketplace-container" style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
-        <h2>Crops Marketplace</h2>
-        <span style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', backgroundColor: '#edf2f7', color: '#4a5568', fontWeight: '500' }}>
+    <div className="grid-bg-effect">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
+        <div>
+          <h2 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 8px 0' }}>Crops Marketplace</h2>
+          <p style={{ color: 'var(--text-light)', margin: 0 }}>
+            Browse fresh crop inventory available for procurement directly from registered local growers.
+          </p>
+        </div>
+        <span className="badge badge-info" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
           📌 Static Crops Catalog
         </span>
       </div>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-        Browse fresh crop inventory available for procurement directly from registered local growers.
-      </p>
 
       {/* Filter controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', marginBottom: '36px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {['all', 'fruits', 'vegetables', 'flowers', 'pulses'].map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className="form-btn"
               style={{
                 width: 'auto',
-                padding: '6px 12px',
-                fontSize: '0.85rem',
-                backgroundColor: selectedCategory === cat ? 'var(--primary-color)' : '#edf2f7',
-                color: selectedCategory === cat ? '#fff' : '#2d3748'
+                padding: '10px 28px',
+                fontSize: '1.05rem',
+                fontWeight: '700',
+                backgroundColor: selectedCategory === cat ? 'var(--primary-color)' : '#2edd6a',
+                border: '1.5px solid #020704',
+                color: '#000000',
+                borderRadius: 'var(--radius-full)',
+                boxShadow: 'none',
+                cursor: 'pointer',
+                transition: 'var(--transition-fast)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
             </button>
           ))}
         </div>
-        <input
-          type="text"
-          className="form-input"
-          style={{ maxWidth: '300px', padding: '6px 12px' }}
-          placeholder="Search crop or farmer..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+
+        <div className="input-icon-wrapper" style={{ minWidth: '280px' }}>
+          <span className="input-icon">🔍</span>
+          <input
+            type="text"
+            className="form-input"
+            style={{ paddingLeft: '40px' }}
+            placeholder="Search crop or farmer..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       {filteredProducts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-          No crops found matching your criteria.
+        <div className="empty-state">
+          No crops found matching your search.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
           {filteredProducts.map((product, idx) => (
-            <div key={idx} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px', backgroundColor: 'var(--bg-primary)', display: 'flex', gap: '12px' }}>
-              <span style={{ fontSize: '2.5rem', alignSelf: 'center' }}>{product.ico}</span>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem' }}>{product.name}</h4>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>🧑‍🌾 Farmer: {product.farmer}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>📍 Origin: {product.location}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                  <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>{product.price}</span>
-                  <span style={{ fontSize: '0.8rem', color: '#b8860b' }}>⭐ {product.rating}</span>
+            <div key={idx} className="card" style={{ display: 'flex', gap: '16px', padding: '20px' }}>
+              <div style={{
+                fontSize: '2.5rem',
+                width: '64px',
+                height: '64px',
+                background: 'rgba(16, 185, 129, 0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifycontent: 'center',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+                flexShrink: 0
+              }}>
+                <span style={{ margin: 'auto' }}>{product.ico}</span>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700' }}>{product.name}</h4>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>🧑‍🌾 Farmer: <strong style={{ color: '#fff' }}>{product.farmer}</strong></div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📍 Origin: {product.location}</div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-color)' }}>{product.price}</span>
+                  <span className="badge badge-pending" style={{ fontSize: '0.75rem' }}>⭐ {product.rating}</span>
                 </div>
               </div>
             </div>

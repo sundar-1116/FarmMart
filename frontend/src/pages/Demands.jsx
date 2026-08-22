@@ -16,6 +16,10 @@ export default function Demands() {
   const [submitting, setSubmitting] = useState(false);
   const [claimingIds, setClaimingIds] = useState(new Set());
 
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
   const fetchDemands = async () => {
     try {
       setLoading(true);
@@ -117,21 +121,32 @@ export default function Demands() {
     }
   };
 
+  // Filter demands locally
+  const filteredDemands = demands.filter(d => {
+    const matchesSearch = d.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          d.itemName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || d.status.toLowerCase() === statusFilter.toLowerCase();
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="demands-container" style={{ padding: '24px' }}>
-      <h2>Store Demands</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-        View and claim active store crop demands from the platform.
-      </p>
+    <div className="grid-bg-effect" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Titleblock */}
+      <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+        <h2 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 8px 0' }}>Store Demands</h2>
+        <p style={{ color: 'var(--text-light)', margin: 0 }}>
+          Browse current crop requirements from retail partners.
+        </p>
+      </div>
 
       {/* Admin Create Demand Form */}
       {user?.role === 'admin' && (
-        <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-          <h3>Create Store Demand</h3>
-          {formError && <div style={{ color: 'var(--error-color)', marginBottom: '12px' }}>⚠️ {formError}</div>}
-          <form onSubmit={handleCreateDemand} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>Store Name</label>
+        <div className="card" style={{ borderLeft: '4px solid var(--primary-color)', animation: 'fadeInUp 0.45s ease-out' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0 0 20px 0', color: 'var(--text-secondary)' }}>Create Store Demand</h3>
+          {formError && <div className="form-error" style={{ marginBottom: '16px' }}>⚠️ {formError}</div>}
+          <form onSubmit={handleCreateDemand} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ flex: '2 1 200px' }}>
+              <label className="form-label">Store Name</label>
               <input
                 type="text"
                 className="form-input"
@@ -141,8 +156,8 @@ export default function Demands() {
                 required
               />
             </div>
-            <div style={{ flex: '1 1 200px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>Item Name</label>
+            <div style={{ flex: '2 1 200px' }}>
+              <label className="form-label">Item Name</label>
               <input
                 type="text"
                 className="form-input"
@@ -153,7 +168,7 @@ export default function Demands() {
               />
             </div>
             <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px' }}>Quantity (kg)</label>
+              <label className="form-label">Quantity (kg)</label>
               <input
                 type="number"
                 className="form-input"
@@ -164,72 +179,125 @@ export default function Demands() {
                 required
               />
             </div>
-            <button type="submit" className="form-btn" style={{ height: '38px', width: 'auto', padding: '0 20px' }} disabled={submitting}>
+            <button type="submit" className="form-btn" style={{ height: '46px', width: 'auto', padding: '0 24px', flex: '0 0 auto' }} disabled={submitting}>
               {submitting ? 'Creating...' : 'Create Demand'}
             </button>
           </form>
         </div>
       )}
 
-      {error && <div style={{ color: 'var(--error-color)', padding: '12px', marginBottom: '16px', border: '1px solid var(--error-color)', borderRadius: '6px' }}>⚠️ {error}</div>}
+      {/* Search & Filter row */}
+      <div className="demands-filters-container" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
+        <div className="demands-search-wrapper">
+          <span className="demands-search-icon">🔍</span>
+          <input
+            type="text"
+            className="demands-search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search crop or retail store..."
+          />
+        </div>
 
+        <div className="demands-status-tabs">
+          {['All', 'Pending', 'Assigned', 'Completed'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setStatusFilter(tab)}
+              className={`demands-status-tab ${statusFilter === tab ? 'active' : ''}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <div className="form-error" style={{ marginBottom: '20px' }}>⚠️ {error}</div>}
+
+      {/* Main Content List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading demands list...</div>
-      ) : demands.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-          No active store demands found.
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Loading demands list...</p>
+        </div>
+      ) : filteredDemands.length === 0 ? (
+        <div className="empty-state" style={{ animation: 'fadeInUp 0.55s ease-out' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(0, 255, 157, 0.04)', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <span style={{ fontSize: '1.75rem' }}>📦</span>
+          </div>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: '700' }}>No active demands</h4>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>New store demands will appear here.</p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
-                <th style={{ padding: '12px' }}>Store</th>
-                <th style={{ padding: '12px' }}>Crop/Item</th>
-                <th style={{ padding: '12px' }}>Required Qty</th>
-                <th style={{ padding: '12px' }}>Status</th>
-                <th style={{ padding: '12px' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {demands.map((demand) => (
-                <tr key={demand._id || demand.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px' }}>{demand.storeName}</td>
-                  <td style={{ padding: '12px' }}>{demand.itemName}</td>
-                  <td style={{ padding: '12px' }}>{demand.quantity} kg</td>
-                  <td style={{ padding: '12px' }}>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      textTransform: 'capitalize',
-                      backgroundColor: demand.status === 'pending' ? 'rgba(184, 134, 11, 0.15)' : 'rgba(56, 161, 105, 0.15)',
-                      color: demand.status === 'pending' ? '#b8860b' : '#38a169'
-                    }}>
+        <div className="demands-grid">
+          {filteredDemands.map((demand, idx) => {
+            const demandId = demand._id || demand.id;
+            const isPending = demand.status === 'pending';
+            const isClaiming = claimingIds.has(demandId);
+
+            // Dynamically assign badges matching dashboard colors
+            let badgeClass = 'badge-pending';
+            if (demand.status === 'assigned') badgeClass = 'badge-info';
+            if (demand.status === 'completed') badgeClass = 'badge-success';
+
+            // Emojis mapping for different categories of crops
+            let cropEmoji = '🌾';
+            const nameLower = demand.itemName.toLowerCase();
+            if (nameLower.includes('tomato')) cropEmoji = '🍅';
+            else if (nameLower.includes('potato')) cropEmoji = '🥔';
+            else if (nameLower.includes('onion')) cropEmoji = '🧅';
+            else if (nameLower.includes('apple')) cropEmoji = '🍎';
+            else if (nameLower.includes('flower') || nameLower.includes('rose')) cropEmoji = '🌹';
+
+            return (
+              <div
+                key={demandId}
+                className="card demand-card"
+                style={{
+                  animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+                  animationDelay: `${idx * 0.05}s`
+                }}
+              >
+                {/* Header */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <h3 className="demand-store-title">{demand.storeName}</h3>
+                    <span className={`badge ${badgeClass}`} style={{ flexShrink: 0 }}>
                       {demand.status}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    {user?.role === 'buyer' && demand.status === 'pending' ? (
-                      <button
-                        onClick={() => handleClaim(demand)}
-                        className="form-btn"
-                        style={{ padding: '6px 12px', fontSize: '0.8rem', width: 'auto' }}
-                        disabled={claimingIds.has(demand._id || demand.id)}
-                      >
-                        {claimingIds.has(demand._id || demand.id) ? 'Claiming...' : 'Claim Demand'}
-                      </button>
-                    ) : user?.role === 'buyer' ? (
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Claimed</span>
-                    ) : (
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>-</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="demand-crop-name">
+                    <span>{cropEmoji}</span>
+                    <span>{demand.itemName}</span>
+                  </div>
+                </div>
+
+                {/* Body Metrics */}
+                <div>
+                  <div className="demand-qty-value">{demand.quantity.toLocaleString()} kg</div>
+                  <div className="demand-qty-label">Required Quantity</div>
+                </div>
+
+                {/* Footer Action */}
+                <div style={{ marginTop: '20px', borderTop: '1px solid rgba(0,255,157,0.08)', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  {user?.role === 'buyer' && isPending ? (
+                    <button
+                      onClick={() => handleClaim(demand)}
+                      className="form-btn"
+                      style={{ padding: '8px 20px', fontSize: '0.8rem', width: 'auto' }}
+                      disabled={isClaiming}
+                    >
+                      {isClaiming ? 'Claiming...' : 'Claim'}
+                    </button>
+                  ) : user?.role === 'buyer' ? (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>Claimed</span>
+                  ) : (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

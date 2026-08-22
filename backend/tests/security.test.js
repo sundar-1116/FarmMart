@@ -802,4 +802,108 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     expect(checkDemand.status).toBe('assigned');
     expect(checkDemand.claimedByTask.toString()).toBe(taskIdA.toString());
   });
+
+  // --- Regression Tests added in Milestone 2.7 ---
+
+  // A. Unpaid task delivery: PUT /api/tasks/:id/delivery must reject a task whose paymentStatus is pending
+  test('A. Unpaid task delivery: PUT /api/tasks/:id/delivery must reject a task whose paymentStatus is pending', async () => {
+    const task = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Reliance Store',
+      itemName: 'Apples',
+      quantity: 50,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id.toString()}/delivery`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('must be cleared first');
+  });
+
+  // B. Sequential delivery: Verify that delivery is rejected when an older unpaid task exists for the same user
+  test('B. Sequential delivery: Reject delivery when an older unpaid task exists for the same user', async () => {
+    // Older task: unpaid
+    const olderTask = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Older Store',
+      itemName: 'Bananas',
+      quantity: 30,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date(Date.now() + 86400000),
+      createdAt: new Date(Date.now() - 3600000) // 1 hour ago
+    });
+
+    // Newer task: paid
+    const newerTask = await Task.create({
+      assignedUser: testUser._id,
+      storeName: 'Newer Store',
+      itemName: 'Oranges',
+      quantity: 40,
+      paymentStatus: 'paid',
+      deliveryStatus: 'pending',
+      deadline: new Date(Date.now() + 86400000),
+      createdAt: new Date()
+    });
+
+    const res = await request(app)
+      .put(`/api/tasks/${newerTask._id.toString()}/delivery`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('older unpaid procurement');
+  });
+
+  // C. Inactive account: Verify that an authenticated user with status inactive cannot access protected endpoints
+  test('C. Inactive account: Authenticated user with status inactive cannot access protected endpoints and receives 403', async () => {
+    testUser.status = 'inactive';
+    await testUser.save();
+
+    const res = await request(app)
+      .get('/api/demands')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.body.error.message).toContain('deactivated');
+  });
+
+  // D. Forgot-password leakage: POST /api/auth/forgot-password must not return raw or hashed resetCode
+  test('D. Forgot-password leakage: forgot-password response must not expose raw or hashed reset code', async () => {
+    const res = await request(app)
+      .post('/api/auth/forgot-password')
+      .send({ email: testUser.email });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const responseString = JSON.stringify(res.body);
+    expect(responseString).not.toContain('resetCode');
+    expect(responseString).not.toContain('resetCodeExpires');
+
+    const userInDb = await User.findOne({ email: testUser.email });
+    expect(userInDb.resetCode).toBeDefined();
+    expect(userInDb.resetCode).not.toBe('');
+    expect(responseString).not.toContain(userInDb.resetCode);
+  });
+
+  // E. Task stats scoping: Verify that a non-admin cannot retrieve another user\'s statistics
+  test('E. Task stats scoping: Non-admin cannot retrieve another user\'s stats by manipulating assignedUser', async () => {
+    const res = await request(app)
+      .get(`/api/tasks/stats?assignedUser=${testOtherUser._id.toString()}`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.body.error.message).toBe("Access denied: Cannot view other users' stats");
+  });
 });

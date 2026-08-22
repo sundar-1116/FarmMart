@@ -121,15 +121,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  updateDemand: async (id, status) => {
-    const res = await fetch(`${API_URL}/api/demands/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ status }),
-    });
-    return handleResponse(res);
-  },
-
   // ── Tasks ──
   getTasks: async (assignedUser = '') => {
     let queryUser = assignedUser;

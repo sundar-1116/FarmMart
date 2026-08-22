@@ -6,7 +6,7 @@ const { requireRole } = require('../middleware/roleMiddleware');
 
 // Protect all routes in this router
 router.use(authMiddleware);
-router.use(requireRole('buyer', 'admin'));
+router.use(requireRole('buyer', 'farmer', 'admin'));
 
 router.route('/')
   .get(getTasks)

@@ -78,6 +78,7 @@ exports.registerUser = async (req, res, next) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        photo: newUser.photo,
         online: newUser.online,
         status: newUser.status
       }
@@ -143,6 +144,7 @@ exports.loginUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        photo: user.photo,
         online: user.online,
         status: user.status
       }

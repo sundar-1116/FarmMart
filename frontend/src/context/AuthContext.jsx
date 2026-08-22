@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }) => {
           name: res.user.name,
           email: res.user.email,
           role: res.user.role, // Authenticated role from database ('buyer', 'farmer', 'admin')
-          avatar: res.user.avatar || '',
+          avatar: res.user.photo || '',
           token: res.token,
           loginTime: Date.now()
         };
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
           name: res.user.name,
           email: res.user.email,
           role: res.user.role,
-          avatar: res.user.avatar || '',
+          avatar: res.user.photo || '',
           token: res.token,
           loginTime: Date.now()
         };
