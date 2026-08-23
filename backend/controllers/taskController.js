@@ -98,7 +98,7 @@ exports.createTask = async (req, res, next) => {
     if (demandId) {
       const updatedDemand = await Demand.findOneAndUpdate(
         { _id: demandId, status: 'pending' },
-        { $set: { status: 'assigned', claimedByTask: taskId } },
+        { $set: { status: 'assigned', claimedByTask: taskId, buyer: req.user.id } },
         { new: true }
       );
       if (!updatedDemand) {
@@ -319,4 +319,69 @@ exports.updateTask = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// Helper function to create or update task from accepted offer
+exports.createOrUpdateTaskFromOffer = async (buyerId, demand, offer, farmerUser) => {
+  const mongoose = require('mongoose');
+  const Crop = require('../models/Crop');
+
+  let task = null;
+  // If the demand is already claimed by a task, let's update it
+  if (demand.claimedByTask) {
+    task = await Task.findById(demand.claimedByTask);
+  }
+
+  // Find crop category to pre-fill farmer category
+  let category = 'vegetables';
+  if (offer.crop) {
+    const crop = await Crop.findById(offer.crop);
+    if (crop) {
+      category = crop.category;
+    }
+  }
+
+  if (task) {
+    // Lock check: if already paid or delivered, don't mutate terms
+    if (task.paymentStatus !== 'paid' && task.deliveryStatus !== 'delivered') {
+      task.farmer = {
+        name: farmerUser.name,
+        category: category
+      };
+      task.purchasePrice = offer.totalPrice;
+      task.quantity = offer.quantity;
+      await task.save();
+    }
+  } else {
+    // Create new task
+    const taskId = new mongoose.Types.ObjectId();
+    const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days default
+
+    task = await Task.create({
+      _id: taskId,
+      assignedUser: buyerId,
+      type: 'procurement',
+      storeName: demand.storeName,
+      itemName: demand.itemName,
+      quantity: offer.quantity,
+      farmer: {
+        name: farmerUser.name,
+        category: category
+      },
+      purchasePrice: offer.totalPrice,
+      deliveryPrice: 0,
+      deliveryCharges: 0,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: deadline
+    });
+
+    demand.claimedByTask = taskId;
+  }
+
+  demand.status = 'assigned';
+  demand.buyer = buyerId;
+  await demand.save();
+
+  return task;
 };

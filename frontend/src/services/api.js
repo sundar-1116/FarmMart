@@ -236,5 +236,90 @@ export const api = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+
+  // ── Offers ──
+  getOffers: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_URL}/api/offers${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getOfferById: async (id) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  createOffer: async (offerData) => {
+    const res = await fetch(`${API_URL}/api/offers`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(offerData),
+    });
+    return handleResponse(res);
+  },
+
+  updateOffer: async (id, offerData) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(offerData),
+    });
+    return handleResponse(res);
+  },
+
+  deleteOffer: async (id) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  acceptOffer: async (id) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status: 'accepted' }),
+    });
+    return handleResponse(res);
+  },
+
+  rejectOffer: async (id) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status: 'rejected' }),
+    });
+    return handleResponse(res);
+  },
+
+  withdrawOffer: async (id) => {
+    const res = await fetch(`${API_URL}/api/offers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status: 'withdrawn' }),
+    });
+    return handleResponse(res);
+  },
+
+  getUsers: async () => {
+    const res = await fetch(`${API_URL}/api/users`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  updateUserRole: async (id, role) => {
+    const res = await fetch(`${API_URL}/api/users/${id}/role`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ role }),
+    });
+    return handleResponse(res);
   }
 };

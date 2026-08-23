@@ -26,6 +26,11 @@ const demandSchema = new mongoose.Schema({
     ref: 'Task',
     default: null
   },
+  buyer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

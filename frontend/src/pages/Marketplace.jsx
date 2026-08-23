@@ -296,23 +296,23 @@ export default function Marketplace() {
                     <div className="marketplace-crop-icon-wrapper">
                       <span>{emoji}</span>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)' }}>{crop.name}</h4>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crop.name}</h4>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', minWidth: 0 }}>
                           {crop.farmer?.photo ? (
                             <img
                               src={crop.farmer.photo}
                               alt={crop.farmer.name}
-                              style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '6px', border: '1px solid var(--primary-color)', objectFit: 'cover' }}
+                              style={{ width: '20px', height: '20px', borderRadius: '50%', marginRight: '6px', border: '1px solid var(--primary-color)', objectFit: 'cover', flexShrink: 0 }}
                             />
                           ) : (
-                            <span style={{ marginRight: '6px' }}>🧑‍🌾</span>
+                            <span style={{ marginRight: '6px', flexShrink: 0 }}>🧑‍🌾</span>
                           )}
-                          <span>Farmer: <strong style={{ color: '#fff' }}>{crop.farmer?.name || 'Unknown'}</strong></span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Farmer: <strong style={{ color: '#fff' }}>{crop.farmer?.name || 'Unknown'}</strong></span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>📍 Origin: {crop.location}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📦 Available: {crop.availableQuantity} {crop.unit}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📍 Origin: {crop.location}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📦 Available: {crop.availableQuantity} {crop.unit}</div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(0, 255, 136, 0.08)', paddingTop: '12px' }}>
                         <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{crop.price}/{crop.unit}</span>
@@ -427,31 +427,33 @@ export default function Marketplace() {
                     <div className="marketplace-crop-icon-wrapper">
                       <span>{emoji}</span>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)' }}>{crop.name}</h4>
-                          <span className={`badge ${isAvailable ? 'badge-success' : 'badge-pending'}`} style={{ fontSize: '0.7rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crop.name}</h4>
+                          <span className={`badge ${isAvailable ? 'badge-success' : 'badge-pending'}`} style={{ fontSize: '0.7rem', flexShrink: 0 }}>
                             {crop.status === 'available' ? 'Available' : 'Unavailable'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>📦 Quantity: {crop.availableQuantity} / {crop.quantity} {crop.unit}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>📍 Origin: {crop.location}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📦 Quantity: {crop.availableQuantity} / {crop.quantity} {crop.unit}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📍 Origin: {crop.location}</div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(0, 255, 136, 0.08)', paddingTop: '12px' }}>
-                        <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{crop.price}/{crop.unit}</span>
+                      <div style={{ marginTop: '16px', borderTop: '1px solid rgba(0, 255, 136, 0.08)', paddingTop: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-color)' }}>₹{crop.price}/{crop.unit}</span>
+                        </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => handleEditClick(crop)}
                             className="form-btn"
-                            style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid var(--border-accent)', color: 'var(--accent-color)' }}
+                            style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid var(--border-accent)', color: 'var(--accent-color)' }}
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(cropId)}
                             className="logout-btn"
-                            style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', border: '1px solid var(--error-color)', color: 'var(--error-color)', margin: 0 }}
+                            style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem', border: '1px solid var(--error-color)', color: 'var(--error-color)', margin: 0 }}
                           >
                             Delete
                           </button>
