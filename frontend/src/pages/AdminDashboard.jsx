@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [demands, setDemands] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +110,7 @@ export default function AdminDashboard() {
       {error && <div className="form-error" style={{ marginBottom: '24px' }}>⚠️ {error}</div>}
 
       {/* Admin Statistics Row */}
-      <div className="stats-row">
+      <div className="stats-grid">
         {/* Stat 1 */}
         <div
           className="card stat-card"
@@ -178,6 +182,21 @@ export default function AdminDashboard() {
 
         {/* Left Column: Create Demand & Demands List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+          {/* User Management Quick Action */}
+          <div className="card" style={{ borderLeft: '4px solid var(--accent-color)', animation: 'fadeInUp 0.4s ease-out' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>User Management</h3>
+            <p style={{ color: 'var(--text-light)', fontSize: '0.85rem', margin: '0 0 16px 0' }}>
+              Manage users and access roles
+            </p>
+            <button
+              onClick={() => navigate('/admin/users')}
+              className="form-btn"
+              style={{ width: 'auto', padding: '8px 16px', fontSize: '0.85rem', margin: 0 }}
+            >
+              Go to User Management &rarr;
+            </button>
+          </div>
 
           <div className="card" style={{ borderLeft: '4px solid var(--primary-color)', animation: 'fadeInUp 0.45s ease-out' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-secondary)' }}>Create Store Demand</h3>

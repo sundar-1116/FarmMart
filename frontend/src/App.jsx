@@ -17,6 +17,7 @@ import Demands from './pages/Demands';
 import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
+import UserManagement from './pages/UserManagement';
 
 // Guards
 import ProtectedRoute from './components/ProtectedRoute';
@@ -67,6 +68,7 @@ export default function App() {
             }
           >
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
           </Route>
 
           {/* Fallback Catch-all */}

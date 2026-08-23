@@ -14,12 +14,19 @@ export default function AuthenticatedLayout() {
   return (
     <div className="app-container authenticated-layout">
       <header className="navbar">
-        <Link to="/dashboard" className="nav-brand-container">
+        <Link to={user?.role === 'admin' ? '/admin' : '/dashboard'} className="nav-brand-container">
           <div className="brand-logo">🌾</div>
           <span className="brand-name">Farm<span className="brand-accent">Mart</span></span>
         </Link>
         <div className="nav-links">
-          <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>
+          {user?.role === 'admin' ? (
+            <>
+              <NavLink to="/admin" className="nav-link">Console Home</NavLink>
+              <NavLink to="/admin/users" className="nav-link">User Management</NavLink>
+            </>
+          ) : (
+            <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>
+          )}
           {user?.role !== 'admin' && (
             <NavLink to="/marketplace" className="nav-link">Marketplace</NavLink>
           )}

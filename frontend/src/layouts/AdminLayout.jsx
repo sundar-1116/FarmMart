@@ -20,6 +20,7 @@ export default function AdminLayout() {
         </Link>
         <div className="nav-links">
           <NavLink to="/admin" className="nav-link">Console Home</NavLink>
+          <NavLink to="/admin/users" className="nav-link">User Management</NavLink>
           <NavLink to="/demands" className="nav-link">Demands</NavLink>
           <NavLink to="/tasks" className="nav-link">Tasks</NavLink>
           <NavLink to="/profile" className="nav-link">Profile</NavLink>

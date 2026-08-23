@@ -16,6 +16,22 @@ export default function Signup() {
   const [success, setSuccess] = useState('');
   const [role, setRole] = useState('buyer');
   const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState('');
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image size must be less than 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +53,7 @@ export default function Signup() {
       gender,
       age: parseInt(age) || 25,
       role,
-      photo: '' // backend will generate default SVG
+      photo: photo // user uploaded photo or empty string for default
     });
 
     setLoading(false);
@@ -227,6 +243,20 @@ export default function Signup() {
                 <option value="buyer">Buyer / Retailer</option>
                 <option value="farmer">Farmer / Grower</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Profile Photo (Optional)</label>
+              <div className="input-icon-wrapper">
+                <span className="input-icon">🖼️</span>
+                <input
+                  type="file"
+                  className="form-input"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  style={{ padding: '6px 12px 6px 40px' }}
+                />
+              </div>
             </div>
 
             <button type="submit" className="form-btn" style={{ marginTop: '28px' }} disabled={loading}>
