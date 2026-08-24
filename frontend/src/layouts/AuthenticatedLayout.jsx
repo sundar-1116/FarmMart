@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AIAssistant from '../components/AI/AIAssistant';
 
 export default function AuthenticatedLayout() {
   const { user, logout } = useAuth();
@@ -58,6 +59,7 @@ export default function AuthenticatedLayout() {
       <main className="main-content">
         <Outlet />
       </main>
+      <AIAssistant />
     </div>
   );
 }

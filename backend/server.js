@@ -8,6 +8,8 @@ const errorHandler = require('./middleware/errorHandler');
 // Load environment variables
 dotenv.config();
 
+// Ensure AI routes are registered
+
 // Environment Validation
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 if (!mongoUri) {
@@ -60,6 +62,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/crops', require('./routes/crops'));
 app.use('/api/offers', require('./routes/offers'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Root endpoint
 app.get('/', (req, res) => {

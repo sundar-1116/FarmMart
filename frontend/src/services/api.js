@@ -24,7 +24,7 @@ const handleResponse = async (response) => {
     try {
       errorData = await response.json();
     } catch {
-      errorData = { message: 'An unknown error occurred' };
+      errorData = { message: `FarmMart API error (${response.status} ${response.statusText || 'Error'})` };
     }
     
     if (response.status === 401) {
@@ -356,6 +356,16 @@ export const api = {
       method: 'PUT',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ role }),
+    });
+    return handleResponse(res);
+  },
+
+  // ── AI Assistant ──
+  askAIAssistant: async (prompt, conversation = []) => {
+    const res = await fetch(`${API_URL}/api/ai/assistant`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ prompt, conversation }),
     });
     return handleResponse(res);
   }
