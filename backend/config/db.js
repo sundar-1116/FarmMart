@@ -2,15 +2,18 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const connStr = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/farmers_to_mart';
-    
-    // Connect to MongoDB
+    const connStr = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+    if (!connStr) {
+      throw new Error('MONGODB_URI environment variable is not configured');
+    }
+
     const conn = await mongoose.connect(connStr);
-    
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`Database connection error: ${error.message}`);
-    process.exit(1); // Fail close
+    process.exit(1);
   }
 };
 
