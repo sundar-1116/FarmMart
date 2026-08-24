@@ -20,10 +20,14 @@ describe('FarmMart Backend Crop Inventory & API Integration Tests', () => {
   let farmerAToken, farmerBToken, buyerToken, adminToken, nonFarmerToken;
 
   beforeAll(async () => {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     process.env.MONGO_URI = uri;
     process.env.MONGODB_URI = uri;
+    await mongoose.connect(uri);
 
     app = require('../server');
   });

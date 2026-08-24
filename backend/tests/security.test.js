@@ -23,10 +23,14 @@ describe('FarmMart Backend Security Hardening Tests', () => {
   let userToken, adminToken, otherUserToken, farmerToken;
 
   beforeAll(async () => {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     process.env.MONGO_URI = uri;
     process.env.MONGODB_URI = uri;
+    await mongoose.connect(uri);
 
     // Require server after setting environment variables
     app = require('../server');
@@ -381,13 +385,13 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     expect(res.status).toBe(401);
   });
 
-  test('RBAC: Authenticated normal user (buyer) accessing unfiltered tasks endpoint returns 403', async () => {
+  test('RBAC: Authenticated normal user (buyer) accessing tasks endpoint defaults to own tasks (returns 200)', async () => {
     const res = await request(app)
       .get('/api/tasks')
       .set('Authorization', `Bearer ${userToken}`);
 
-    expect(res.status).toBe(403);
-    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
   });
 
   test('RBAC: Authenticated admin accessing unfiltered tasks endpoint succeeds', async () => {
@@ -399,12 +403,12 @@ describe('FarmMart Backend Security Hardening Tests', () => {
     expect(res.body.success).toBe(true);
   });
 
-  test('RBAC: Farmer cannot access tasks endpoint (returns 403)', async () => {
+  test('RBAC: Farmer can access tasks endpoint to manage assigned procurement tasks (returns 200)', async () => {
     const res = await request(app)
       .get('/api/tasks')
       .set('Authorization', `Bearer ${farmerToken}`);
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
   });
 
   test('RBAC: Buyer cannot access admin demands creation (POST /api/demands returns 403)', async () => {
@@ -827,13 +831,13 @@ describe('FarmMart Backend Security Hardening Tests', () => {
   });
 
   // B. Sequential delivery: Verify that delivery is rejected when an older unpaid task exists for the same user
-  test('B. Sequential delivery: Reject delivery when an older unpaid task exists for the same user', async () => {
+  test('B. Independent delivery: Allow delivery confirmation regardless of older unpaid tasks for the same user', async () => {
     // Older task: unpaid
     const olderTask = await Task.create({
       assignedUser: testUser._id,
       storeName: 'Older Store',
-      itemName: 'Bananas',
-      quantity: 30,
+      itemName: 'Apples',
+      quantity: 50,
       paymentStatus: 'pending',
       deliveryStatus: 'pending',
       deadline: new Date(Date.now() + 86400000),
@@ -856,9 +860,9 @@ describe('FarmMart Backend Security Hardening Tests', () => {
       .put(`/api/tasks/${newerTask._id.toString()}/delivery`)
       .set('Authorization', `Bearer ${userToken}`);
 
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toContain('older unpaid procurement');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.deliveryStatus).toBe('delivered');
   });
 
   // C. Inactive account: Verify that an authenticated user with status inactive cannot access protected endpoints

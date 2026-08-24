@@ -22,10 +22,14 @@ describe('FarmMart Backend Offer & Negotiation Workflow Tests', () => {
   let demand1, crop1, crop2;
 
   beforeAll(async () => {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     process.env.MONGO_URI = uri;
     process.env.MONGODB_URI = uri;
+    await mongoose.connect(uri);
 
     app = require('../server');
   });
@@ -709,5 +713,392 @@ describe('FarmMart Backend Offer & Negotiation Workflow Tests', () => {
     expect(offerRes.status).toBe(201);
     expect(offerRes.body.success).toBe(true);
     expect(offerRes.body.data.status).toBe('pending');
+  });
+
+  // 24. Counter-offer does NOT assign demand or set buyer
+  test('Counter-offer does NOT assign demand or set buyer', async () => {
+    // Farmer creates offer on open demand
+    const offerRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${farmer1Token}`)
+      .send({
+        demand: demand1._id.toString(),
+        crop: crop1._id.toString(),
+        quantity: 50,
+        pricePerUnit: 30,
+        message: 'Initial farmer offer'
+      });
+    expect(offerRes.status).toBe(201);
+
+    // Buyer counters offer
+    const counterRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${buyer1Token}`)
+      .send({
+        demand: demand1._id.toString(),
+        parentOffer: offerRes.body.data._id,
+        quantity: 45,
+        pricePerUnit: 28,
+        message: 'Buyer counter proposal'
+      });
+
+    expect(counterRes.status).toBe(201);
+    expect(counterRes.body.data.status).toBe('pending');
+
+    // Verify demand remains pending and unassigned (buyer is still null)
+    const refreshedDemand = await Demand.findById(demand1._id);
+    expect(refreshedDemand.status).toBe('pending');
+    expect(refreshedDemand.buyer).toBeNull();
+  });
+
+  // 25. Complete open demand negotiation: Farmer initial -> Buyer counter -> Farmer counter -> Buyer accepts
+  test('Complete open demand negotiation flow to acceptance and task creation', async () => {
+    // 1. Farmer creates initial offer
+    const farmerOfferRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${farmer1Token}`)
+      .send({
+        demand: demand1._id.toString(),
+        crop: crop1._id.toString(),
+        quantity: 100,
+        pricePerUnit: 35,
+        message: 'Initial offer'
+      });
+    const farmerOfferId = farmerOfferRes.body.data._id;
+
+    // 2. Buyer discovers offer on open demand via GET /api/offers
+    const buyerGetRes = await request(app)
+      .get(`/api/offers?demand=${demand1._id.toString()}`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+    expect(buyerGetRes.status).toBe(200);
+    expect(buyerGetRes.body.data.length).toBe(1);
+
+    // 3. Buyer counters farmer offer
+    const buyerCounterRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${buyer1Token}`)
+      .send({
+        demand: demand1._id.toString(),
+        parentOffer: farmerOfferId,
+        quantity: 90,
+        pricePerUnit: 32,
+        message: 'Counter proposal'
+      });
+    const buyerCounterId = buyerCounterRes.body.data._id;
+
+    // Verify demand still unassigned
+    let currentDemand = await Demand.findById(demand1._id);
+    expect(currentDemand.status).toBe('pending');
+    expect(currentDemand.buyer).toBeNull();
+
+    // 4. Farmer counters back
+    const farmerCounterRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${farmer1Token}`)
+      .send({
+        demand: demand1._id.toString(),
+        parentOffer: buyerCounterId,
+        quantity: 95,
+        pricePerUnit: 33,
+        message: 'Farmer counter compromise'
+      });
+    const finalFarmerOfferId = farmerCounterRes.body.data._id;
+
+    // 5. Buyer accepts farmer\'s counter-offer
+    const acceptRes = await request(app)
+      .put(`/api/offers/${finalFarmerOfferId}`)
+      .set('Authorization', `Bearer ${buyer1Token}`)
+      .send({ status: 'accepted' });
+
+    expect(acceptRes.status).toBe(200);
+    expect(acceptRes.body.data.offer.status).toBe('accepted');
+    expect(acceptRes.body.data.task).toBeDefined();
+
+    // 6. Verify demand is NOW assigned to buyer1 and linked to task
+    currentDemand = await Demand.findById(demand1._id);
+    expect(currentDemand.status).toBe('assigned');
+    expect(currentDemand.buyer.toString()).toBe(buyer1._id.toString());
+    expect(currentDemand.claimedByTask.toString()).toBe(acceptRes.body.data.task._id.toString());
+
+    // 7. Verify task terms match final accepted offer
+    const task = await Task.findById(acceptRes.body.data.task._id);
+    expect(task.assignedUser.toString()).toBe(buyer1._id.toString());
+    expect(task.quantity).toBe(95);
+    expect(task.purchasePrice).toBe(3135); // 95 * 33
+  });
+
+  // 26. Admin can inspect all offers and demands
+  test('Admin can view all offers across demands', async () => {
+    await Offer.create({
+      demand: demand1._id,
+      farmer: farmer1._id,
+      crop: crop1._id,
+      quantity: 50,
+      pricePerUnit: 30,
+      totalPrice: 1500,
+      createdBy: farmer1._id
+    });
+
+    const res = await request(app)
+      .get('/api/offers')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // 27. Admin can edit and delete store demands
+  test('Admin can edit and delete store demands', async () => {
+    // 1. Admin edits demand
+    const updateRes = await request(app)
+      .put(`/api/demands/${demand1._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        storeName: 'Updated Store Name',
+        itemName: 'Organic Potato',
+        quantity: 1200
+      });
+
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.data.storeName).toBe('Updated Store Name');
+    expect(updateRes.body.data.itemName).toBe('Organic Potato');
+    expect(updateRes.body.data.quantity).toBe(1200);
+
+    // 2. Admin deletes demand
+    const deleteRes = await request(app)
+      .delete(`/api/demands/${demand1._id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.success).toBe(true);
+
+    const deletedCheck = await Demand.findById(demand1._id);
+    expect(deletedCheck).toBeNull();
+  });
+
+  // 28. Non-admins cannot edit or delete store demands
+  test('Non-admins are forbidden from editing or deleting store demands', async () => {
+    // Buyer attempt to edit
+    const buyerEditRes = await request(app)
+      .put(`/api/demands/${demand1._id}`)
+      .set('Authorization', `Bearer ${buyer1Token}`)
+      .send({ storeName: 'Hacked Store' });
+    expect(buyerEditRes.status).toBe(403);
+
+    // Farmer attempt to delete
+    const farmerDeleteRes = await request(app)
+      .delete(`/api/demands/${demand1._id}`)
+      .set('Authorization', `Bearer ${farmer1Token}`);
+    expect(farmerDeleteRes.status).toBe(403);
+  });
+
+  // 29. Store demand automatically marks as completed when task is delivered and paid
+  test('Store demand marks as completed when procurement task is cleared and delivered', async () => {
+    const Task = require('../models/Task');
+    // Create an assigned demand
+    const testDemand = await Demand.create({
+      storeName: 'Completion Store',
+      itemName: 'Apples',
+      quantity: 300,
+      status: 'assigned',
+      buyer: buyer1._id
+    });
+
+    const task = await Task.create({
+      assignedUser: buyer1._id,
+      storeName: 'Completion Store',
+      itemName: 'Apples',
+      quantity: 300,
+      farmer: { name: 'Farmer Bob', category: 'fruits' },
+      purchasePrice: 9000,
+      deliveryPrice: 500,
+      deliveryCharges: 100,
+      paymentStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    testDemand.claimedByTask = task._id;
+    await testDemand.save();
+
+    // 1. Clear payment
+    await request(app)
+      .put(`/api/tasks/${task._id}/payment`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+
+    // 2. Confirm delivery
+    await request(app)
+      .put(`/api/tasks/${task._id}/delivery`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+
+    const updatedDemand = await Demand.findById(testDemand._id);
+    expect(updatedDemand.status).toBe('completed');
+  });
+
+  // 30. Offer acceptance sets farmerId and procurementStatus: 'pending' on created Task
+  test('Accepting an offer populates farmerId and procurementStatus on the task', async () => {
+    const freshDemand = await Demand.create({
+      storeName: 'Procurement Test Store',
+      itemName: 'Guavas',
+      quantity: 150
+    });
+
+    const offerRes = await request(app)
+      .post('/api/offers')
+      .set('Authorization', `Bearer ${farmer1Token}`)
+      .send({
+        demand: freshDemand._id,
+        quantity: 150,
+        pricePerUnit: 25,
+        message: 'Guavas ready'
+      });
+
+    const acceptRes = await request(app)
+      .put(`/api/offers/${offerRes.body.data._id}`)
+      .set('Authorization', `Bearer ${buyer1Token}`)
+      .send({ status: 'accepted' });
+
+    expect(acceptRes.status).toBe(200);
+    const createdTask = acceptRes.body.data.task;
+    expect(createdTask.farmerId.toString()).toBe(farmer1._id.toString());
+    expect(createdTask.procurementStatus).toBe('pending');
+  });
+
+  // 31. Farmer can fetch tasks assigned to them
+  test('Farmer can retrieve tasks where farmerId matches their user ID', async () => {
+    const Task = require('../models/Task');
+    const farmerTask = await Task.create({
+      assignedUser: buyer1._id,
+      farmerId: farmer1._id,
+      storeName: 'Farmer Store',
+      itemName: 'Oranges',
+      quantity: 100,
+      farmer: { name: farmer1.name, category: 'fruits' },
+      purchasePrice: 2000,
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    const getRes = await request(app)
+      .get('/api/tasks')
+      .set('Authorization', `Bearer ${farmer1Token}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.data.length).toBeGreaterThan(0);
+    const foundTask = getRes.body.data.find(t => (t._id || t.id).toString() === farmerTask._id.toString());
+    expect(foundTask).toBeDefined();
+  });
+
+  // 32. Farmer can mark task as procured
+  test('Farmer can mark their task as procured via PUT /api/tasks/:id/procure', async () => {
+    const Task = require('../models/Task');
+    const farmerTask = await Task.create({
+      assignedUser: buyer1._id,
+      farmerId: farmer1._id,
+      storeName: 'Farmer Store 2',
+      itemName: 'Bananas',
+      quantity: 200,
+      farmer: { name: farmer1.name, category: 'fruits' },
+      purchasePrice: 3000,
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    const procureRes = await request(app)
+      .put(`/api/tasks/${farmerTask._id}/procure`)
+      .set('Authorization', `Bearer ${farmer1Token}`);
+
+    expect(procureRes.status).toBe(200);
+    expect(procureRes.body.data.procurementStatus).toBe('procured');
+  });
+
+  // 33. Non-assigned farmer cannot mark task as procured
+  test('Non-assigned farmer receives 403 when trying to mark a task as procured', async () => {
+    const Task = require('../models/Task');
+    const farmerTask = await Task.create({
+      assignedUser: buyer1._id,
+      farmerId: farmer1._id,
+      storeName: 'Farmer Store 3',
+      itemName: 'Pineapples',
+      quantity: 50,
+      farmer: { name: farmer1.name, category: 'fruits' },
+      purchasePrice: 1500,
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    const unauthorizedRes = await request(app)
+      .put(`/api/tasks/${farmerTask._id}/procure`)
+      .set('Authorization', `Bearer ${farmer2Token}`);
+
+    expect(unauthorizedRes.status).toBe(403);
+  });
+
+  // 34. Delivery confirmation requires procurementStatus === 'procured'
+  test('Delivery confirmation is blocked until farmer marks task as procured', async () => {
+    const Task = require('../models/Task');
+    const gatedTask = await Task.create({
+      assignedUser: buyer1._id,
+      farmerId: farmer1._id,
+      storeName: 'Gated Store',
+      itemName: 'Lemons',
+      quantity: 80,
+      farmer: { name: farmer1.name, category: 'fruits' },
+      purchasePrice: 800,
+      paymentStatus: 'paid',
+      procurementStatus: 'pending',
+      deliveryStatus: 'pending',
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    // Attempt delivery while procurement is pending -> Should fail with 400
+    const deliveryAttempt = await request(app)
+      .put(`/api/tasks/${gatedTask._id}/delivery`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+
+    expect(deliveryAttempt.status).toBe(400);
+    expect(deliveryAttempt.body.message).toMatch(/procurement/i);
+
+    // Farmer marks as procured
+    await request(app)
+      .put(`/api/tasks/${gatedTask._id}/procure`)
+      .set('Authorization', `Bearer ${farmer1Token}`);
+
+    // Now delivery attempt succeeds -> 200
+    const successfulDelivery = await request(app)
+      .put(`/api/tasks/${gatedTask._id}/delivery`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+
+    expect(successfulDelivery.status).toBe(200);
+    expect(successfulDelivery.body.data.deliveryStatus).toBe('delivered');
+  });
+
+  // 35. Admins, buyers, and unauthenticated users cannot mark task as procured
+  test('Admin, buyer, and unauthenticated users receive 403/401 when attempting to mark task as procured', async () => {
+    const Task = require('../models/Task');
+    const farmerTask = await Task.create({
+      assignedUser: buyer1._id,
+      farmerId: farmer1._id,
+      storeName: 'Farmer Procurement Only Store',
+      itemName: 'Watermelons',
+      quantity: 60,
+      farmer: { name: farmer1.name, category: 'fruits' },
+      purchasePrice: 1800,
+      deadline: new Date(Date.now() + 86400000)
+    });
+
+    // Admin attempt -> 403 Forbidden
+    const adminRes = await request(app)
+      .put(`/api/tasks/${farmerTask._id}/procure`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(adminRes.status).toBe(403);
+
+    // Buyer attempt -> 403 Forbidden
+    const buyerRes = await request(app)
+      .put(`/api/tasks/${farmerTask._id}/procure`)
+      .set('Authorization', `Bearer ${buyer1Token}`);
+    expect(buyerRes.status).toBe(403);
+
+    // Unauthenticated attempt -> 401 Unauthorized
+    const unauthRes = await request(app)
+      .put(`/api/tasks/${farmerTask._id}/procure`);
+    expect(unauthRes.status).toBe(401);
   });
 });

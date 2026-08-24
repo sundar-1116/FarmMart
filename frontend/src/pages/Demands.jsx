@@ -43,6 +43,80 @@ export default function Demands() {
   const [counterError, setCounterError] = useState('');
   const [counterSubmitting, setCounterSubmitting] = useState(false);
 
+  // Admin Demand Edit Modal state
+  const [editingDemandModal, setEditingDemandModal] = useState(null);
+  const [editStoreName, setEditStoreName] = useState('');
+  const [editItemName, setEditItemName] = useState('');
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const handleOpenEditModal = (demand) => {
+    setEditingDemandModal(demand);
+    setEditStoreName(demand.storeName);
+    setEditItemName(demand.itemName);
+    setEditQuantity(demand.quantity);
+    setEditError('');
+  };
+
+  const handleUpdateDemandSubmit = async (e) => {
+    e.preventDefault();
+    setEditError('');
+    if (!editStoreName || !editItemName || !editQuantity) {
+      setEditError('Please fill in all fields');
+      return;
+    }
+    const numQty = parseFloat(editQuantity);
+    if (isNaN(numQty) || numQty <= 0) {
+      setEditError('Quantity must be a positive number');
+      return;
+    }
+
+    try {
+      setEditSubmitting(true);
+      const demandId = editingDemandModal._id || editingDemandModal.id;
+      const res = await api.updateDemand(demandId, {
+        storeName: editStoreName,
+        itemName: editItemName,
+        quantity: numQty,
+        status: editingDemandModal?.status || 'pending'
+      });
+      if (res.success) {
+        alert('Demand updated successfully!');
+        setEditingDemandModal(null);
+        await loadAll();
+      } else {
+        setEditError(res.message || 'Failed to update demand');
+      }
+    } catch (err) {
+      setEditError(err.message || 'An error occurred');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteDemandAction = async (demand) => {
+    const demandId = demand._id || demand.id;
+    if (!window.confirm(`Are you sure you want to delete the demand for ${demand.itemName} (${demand.storeName})?`)) return;
+
+    try {
+      const res = await api.deleteDemand(demandId);
+      if (res.success) {
+        alert('Demand deleted successfully!');
+        await loadAll();
+      } else {
+        alert(res.message || 'Failed to delete demand');
+      }
+    } catch (err) {
+      alert(err.message || 'An error occurred');
+    }
+  };
+
+  // Safe ID helpers
+  const getOfferDemandId = (o) => (o?.demand?._id || o?.demand || '').toString();
+  const getOfferFarmerId = (o) => (o?.farmer?._id || o?.farmer || '').toString();
+  const getOfferCreatedById = (o) => (o?.createdBy?._id || o?.createdBy || '').toString();
+
   const fetchDemands = async () => {
     try {
       const res = await api.getDemands();
@@ -70,7 +144,8 @@ export default function Demands() {
   const fetchFarmerCrops = async () => {
     try {
       if (user?.role === 'farmer') {
-        const res = await api.getCrops({ farmer: user.id });
+        const farmerId = user.id || user._id;
+        const res = await api.getCrops(farmerId ? { farmer: farmerId } : {});
         if (res.success) {
           setFarmerCrops(res.data || []);
         }
@@ -80,10 +155,39 @@ export default function Demands() {
     }
   };
 
+  const handleOpenMakeOfferModal = (demand) => {
+    setSelectedDemandForOffer(demand);
+    setOfferError('');
+    setOfferMsg('');
+
+    const cropsList = farmerCrops || [];
+    if (cropsList.length > 0) {
+      const targetName = (demand?.itemName || '').toLowerCase();
+      const match = cropsList.find(c =>
+        c.name.toLowerCase().includes(targetName) ||
+        targetName.includes(c.name.toLowerCase())
+      );
+      if (match) {
+        setOfferCropId((match._id || match.id).toString());
+        setOfferQty(match.availableQuantity || demand.quantity);
+        setOfferPrice(match.price || '');
+      } else {
+        const first = cropsList[0];
+        setOfferCropId((first._id || first.id).toString());
+        setOfferQty(first.availableQuantity || demand.quantity);
+        setOfferPrice(first.price || '');
+      }
+    } else {
+      setOfferCropId('');
+      setOfferQty(demand?.quantity || '');
+      setOfferPrice('');
+    }
+  };
+
   const loadAll = async () => {
     setLoading(true);
     setError('');
-    await Promise.all([fetchDemands(), fetchOffers(), fetchFarmerCrops()]);
+    await Promise.allSettled([fetchDemands(), fetchOffers(), fetchFarmerCrops()]);
     setLoading(false);
   };
 
@@ -336,8 +440,8 @@ export default function Demands() {
     while (current) {
       history.unshift(current);
       if (current.parentOffer) {
-        const parentId = current.parentOffer._id || current.parentOffer;
-        current = offers.find(o => o._id === parentId);
+        const parentId = (current.parentOffer._id || current.parentOffer || '').toString();
+        current = offers.find(o => (o._id || o.id || '').toString() === parentId);
       } else {
         current = null;
       }
@@ -552,8 +656,8 @@ export default function Demands() {
             else if (nameLower.includes('apple')) cropEmoji = '🍎';
             else if (nameLower.includes('flower') || nameLower.includes('rose')) cropEmoji = '🌹';
 
-            // M6 computations
-            const demandOffers = offers.filter(o => (o.demand?._id || o.demand) === demandId);
+            // M6 computations with safe ID resolution
+            const demandOffers = offers.filter(o => getOfferDemandId(o) === demandId.toString());
             const activeOffersCount = demandOffers.filter(o => o.status === 'pending').length;
 
             return (
@@ -596,8 +700,8 @@ export default function Demands() {
                 </div>
 
                 {/* Footer Action */}
-                <div style={{ marginTop: '20px', borderTop: '1px solid rgba(0,255,157,0.08)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                  {/* Buyer Claims */}
+                <div style={{ marginTop: '20px', borderTop: '1px solid rgba(0,255,157,0.08)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Buyer View */}
                   {user?.role === 'buyer' && (
                     <>
                       {isPending ? (
@@ -619,17 +723,51 @@ export default function Demands() {
                           className="form-btn"
                           style={{ padding: '8px 16px', fontSize: '0.8rem', width: 'auto', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: '#3b82f6', color: '#60a5fa' }}
                         >
-                          View Offers
+                          View Offers ({demandOffers.length})
                         </button>
                       )}
                     </>
+                  )}
+
+                  {/* Admin View */}
+                  {user?.role === 'admin' && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => handleOpenEditModal(demand)}
+                          className="form-btn"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: '#3b82f6', color: '#60a5fa' }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDemandAction(demand)}
+                          className="form-btn"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: '#ef4444', color: '#f87171' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {demandOffers.length > 0 ? (
+                        <button
+                          onClick={() => setSelectedDemandOffers(demand)}
+                          className="form-btn"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(0, 255, 157, 0.1)', borderColor: 'var(--primary-color)', color: 'var(--primary-color)' }}
+                        >
+                          Inspect Offers ({demandOffers.length})
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No offers</span>
+                      )}
+                    </div>
                   )}
 
                   {/* Farmer Bidding */}
                   {user?.role === 'farmer' && (
                     <>
                       {(() => {
-                        const farmerDemandOffers = demandOffers.filter(o => (o.farmer?._id || o.farmer) === user.id);
+                        const farmerDemandOffers = demandOffers.filter(o => getOfferFarmerId(o) === user.id);
                         const latestOffer = farmerDemandOffers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
                         const isEligibleForOffers = (demand.status === 'pending' || demand.status === 'assigned') && !demandOffers.some(o => o.status === 'accepted');
 
@@ -637,7 +775,7 @@ export default function Demands() {
                           return (
                             isEligibleForOffers && (
                               <button
-                                onClick={() => setSelectedDemandForOffer(demand)}
+                                onClick={() => handleOpenMakeOfferModal(demand)}
                                 className="form-btn"
                                 style={{ padding: '8px 16px', fontSize: '0.8rem', width: 'auto' }}
                               >
@@ -648,43 +786,74 @@ export default function Demands() {
                         }
 
                         if (latestOffer.status === 'pending') {
-                          const createdByMe = (latestOffer.createdBy?._id || latestOffer.createdBy) === user.id;
+                          const createdByMe = getOfferCreatedById(latestOffer) === user.id;
                           return (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '0.75rem', color: createdByMe ? 'var(--accent-color)' : 'var(--primary-color)' }}>
                                 {createdByMe ? '⏳ Waiting for Buyer' : '🚨 Counter Received'}
                               </span>
-                              {createdByMe ? (
+                              <div style={{ display: 'flex', gap: '6px' }}>
                                 <button
-                                  onClick={() => handleWithdrawOffer(latestOffer._id)}
+                                  onClick={() => setViewHistoryOffer(latestOffer)}
                                   className="form-btn"
-                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'var(--badge-error-color)', color: 'var(--badge-error-color)' }}
+                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'var(--border-color)', color: 'var(--text-light)' }}
                                 >
-                                  Withdraw
+                                  History
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setCounteringOffer(latestOffer);
-                                    setCounterQty(latestOffer.quantity);
-                                    setCounterPrice(latestOffer.pricePerUnit);
-                                  }}
-                                  className="form-btn"
-                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto' }}
-                                >
-                                  Respond
-                                </button>
-                              )}
+                                {createdByMe ? (
+                                  <button
+                                    onClick={() => handleWithdrawOffer(latestOffer._id)}
+                                    className="form-btn"
+                                    style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'var(--badge-error-color)', color: 'var(--badge-error-color)' }}
+                                  >
+                                    Withdraw
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setCounteringOffer(latestOffer);
+                                      setCounterQty(latestOffer.quantity);
+                                      setCounterPrice(latestOffer.pricePerUnit);
+                                    }}
+                                    className="form-btn"
+                                    style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto' }}
+                                  >
+                                    Respond
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           );
                         }
 
                         if (latestOffer.status === 'countered') {
-                          return <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>⏳ Proposing counter...</span>;
+                          return (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>⏳ Countered</span>
+                              <button
+                                onClick={() => setViewHistoryOffer(latestOffer)}
+                                className="form-btn"
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto' }}
+                              >
+                                History
+                              </button>
+                            </div>
+                          );
                         }
 
                         if (latestOffer.status === 'accepted') {
-                          return <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 'bold' }}>✓ Offer Accepted</span>;
+                          return (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 'bold' }}>✓ Offer Accepted</span>
+                              <button
+                                onClick={() => setViewHistoryOffer(latestOffer)}
+                                className="form-btn"
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto' }}
+                              >
+                                History
+                              </button>
+                            </div>
+                          );
                         }
 
                         if (latestOffer.status === 'rejected') {
@@ -697,7 +866,7 @@ export default function Demands() {
                               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Withdrawn</span>
                               {isEligibleForOffers && (
                                 <button
-                                  onClick={() => setSelectedDemandForOffer(demand)}
+                                  onClick={() => handleOpenMakeOfferModal(demand)}
                                   className="form-btn"
                                   style={{ padding: '8px 16px', fontSize: '0.8rem', width: 'auto' }}
                                 >
@@ -721,14 +890,16 @@ export default function Demands() {
         </div>
       )}
 
-      {/* FARMER SUBMIT OFFER MODAL */}
+      {/* FARMER MAKE OFFER MODAL */}
       {selectedDemandForOffer && (
         <div style={modalOverlayStyle}>
           <div style={modalContentStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>Submit Offer — {selectedDemandForOffer.itemName}</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                Submit Offer — {selectedDemandForOffer.itemName}
+              </h3>
               <button
-                onClick={() => { setSelectedDemandForOffer(null); setOfferError(''); }}
+                onClick={() => setSelectedDemandForOffer(null)}
                 style={{ background: 'none', border: 'none', color: '#ff6b6b', fontSize: '1.5rem', cursor: 'pointer' }}
               >
                 ×
@@ -736,34 +907,47 @@ export default function Demands() {
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
-              Demand from <strong>{selectedDemandForOffer.storeName}</strong> for <strong>{selectedDemandForOffer.quantity} kg</strong>.
+              Demand from <strong>{selectedDemandForOffer.storeName}</strong> for <strong>{selectedDemandForOffer.quantity} kg</strong> of {selectedDemandForOffer.itemName}.
             </p>
 
             {offerError && <div className="form-error">⚠️ {offerError}</div>}
 
             <form onSubmit={handleCreateOffer} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="form-label">Select Crop Inventory Item (Optional)</label>
-                <select
-                  className="form-input"
-                  style={{ background: 'var(--input-bg)', color: 'var(--text-light)' }}
-                  value={offerCropId}
-                  onChange={(e) => {
-                    setOfferCropId(e.target.value);
-                    const crop = farmerCrops.find(c => c._id === e.target.value || c.id === e.target.value);
-                    if (crop) {
-                      setOfferQty(crop.availableQuantity);
-                      setOfferPrice(crop.price);
-                    }
-                  }}
-                >
-                  <option value="">-- No specific crop item --</option>
-                  {farmerCrops.map(crop => (
-                    <option key={crop._id} value={crop._id}>
-                      {crop.name} (Avail: {crop.availableQuantity} {crop.unit} @ ₹{crop.price}/kg)
-                    </option>
-                  ))}
-                </select>
+                <label className="form-label">Select Crop Inventory Item</label>
+                {farmerCrops.length > 0 ? (
+                  <select
+                    className="form-input"
+                    style={{ background: 'var(--input-bg)', color: 'var(--text-light)' }}
+                    value={offerCropId}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      setOfferCropId(selectedId);
+                      const crop = farmerCrops.find(c => (c._id || c.id || '').toString() === selectedId);
+                      if (crop) {
+                        setOfferQty(crop.availableQuantity);
+                        setOfferPrice(crop.price);
+                      }
+                    }}
+                  >
+                    <option value="">-- Direct Offer for {selectedDemandForOffer.itemName} --</option>
+                    {farmerCrops.map(crop => {
+                      const cropId = (crop._id || crop.id).toString();
+                      return (
+                        <option key={cropId} value={cropId}>
+                          {crop.name} {crop.category ? `(${crop.category})` : ''} — Avail: {crop.availableQuantity} {crop.unit || 'kg'} @ ₹{crop.price}/unit
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 14px', fontSize: '0.85rem', color: 'var(--text-light)' }}>
+                    🌾 Target Crop: <strong>{selectedDemandForOffer.itemName}</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      (No specific crop inventory item linked. Offer will be submitted for {selectedDemandForOffer.itemName}).
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '16px' }}>
@@ -802,9 +986,34 @@ export default function Demands() {
                 />
               </div>
 
-              <button type="submit" className="form-btn" style={{ width: '100%', marginTop: '8px' }} disabled={offerSubmitting}>
-                {offerSubmitting ? 'Submitting...' : 'Send Offer'}
-              </button>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDemandForOffer(null)}
+                  style={{
+                    height: '42px',
+                    padding: '0 20px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    color: 'var(--text-light)',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: 'auto'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="form-btn"
+                  style={{ height: '42px', width: 'auto', padding: '0 24px' }}
+                  disabled={offerSubmitting}
+                >
+                  {offerSubmitting ? 'Submitting...' : 'Send Offer'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -826,12 +1035,14 @@ export default function Demands() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
               {(() => {
-                const list = offers.filter(o => (o.demand?._id || o.demand) === selectedDemandOffers._id);
+                const targetDemandId = (selectedDemandOffers._id || selectedDemandOffers.id).toString();
+                const list = offers.filter(o => getOfferDemandId(o) === targetDemandId);
                 // Get only latest offer of each farmer's chain
                 const farmerChainLatest = {};
                 list.forEach(o => {
-                  if (!farmerChainLatest[o.farmer?._id] || new Date(o.createdAt) > new Date(farmerChainLatest[o.farmer?._id].createdAt)) {
-                    farmerChainLatest[o.farmer?._id] = o;
+                  const fId = getOfferFarmerId(o);
+                  if (fId && (!farmerChainLatest[fId] || new Date(o.createdAt) > new Date(farmerChainLatest[fId].createdAt))) {
+                    farmerChainLatest[fId] = o;
                   }
                 });
 
@@ -843,19 +1054,20 @@ export default function Demands() {
 
                 return latestOffers.map(offer => {
                   const isPending = offer.status === 'pending';
-                  const createdByFarmer = offer.createdBy?.role === 'farmer';
+                  const createdByFarmer = offer.createdBy?.role === 'farmer' || getOfferCreatedById(offer) === getOfferFarmerId(offer);
+                  const createdByMe = getOfferCreatedById(offer) === user?.id;
 
                   return (
                     <div key={offer._id} className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.01)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {offer.farmer?.photo ? (
-                            <img src={offer.farmer.photo} alt={offer.farmer.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                            <img src={offer.farmer.photo} alt={offer.farmer.name || 'Farmer'} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
                           ) : (
                             <span style={{ fontSize: '1.5rem' }}>👨‍🌾</span>
                           )}
                           <div>
-                            <strong style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>{offer.farmer?.name}</strong>
+                            <strong style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>{offer.farmer?.name || 'Farmer'}</strong>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Farmer</div>
                           </div>
                         </div>
@@ -865,7 +1077,7 @@ export default function Demands() {
                       <div style={{ display: 'flex', gap: '20px', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Quantity</div>
-                          <strong style={{ color: 'var(--text-light)' }}>{offer.quantity} kg</strong>
+                          <strong style={{ color: 'var(--text-light)' }}>{offer.quantity} {offer.crop?.unit || 'kg'}</strong>
                         </div>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Price/Unit</div>
@@ -879,7 +1091,7 @@ export default function Demands() {
 
                       {offer.crop && (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          🌾 Crop Item: <strong>{offer.crop.name}</strong> ({offer.crop.location})
+                          🌾 Crop Item: <strong>{offer.crop.name}</strong> {offer.crop.category && `(${offer.crop.category})`}{offer.crop.location && ` — ${offer.crop.location}`}
                         </div>
                       )}
 
@@ -890,42 +1102,50 @@ export default function Demands() {
                       )}
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
                         <button
                           onClick={() => setViewHistoryOffer(offer)}
                           className="form-btn"
-                          style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'var(--border-color)', color: 'var(--text-light)' }}
+                          style={{ padding: '6px 14px', fontSize: '0.75rem', width: 'auto', backgroundColor: '#00ff9d', borderColor: '#00ff9d', color: '#000', fontWeight: 'bold' }}
                         >
                           View History
                         </button>
 
-                        {isPending && createdByFarmer && (
+                        {user?.role === 'buyer' && (
                           <>
-                            <button
-                              onClick={() => handleAcceptOffer(offer._id)}
-                              className="form-btn"
-                              style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(0, 255, 157, 0.1)', borderColor: 'var(--primary-color)', color: 'var(--primary-color)' }}
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleRejectOffer(offer._id)}
-                              className="form-btn"
-                              style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: '#ef4444', color: '#f87171' }}
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => {
-                                setCounteringOffer(offer);
-                                setCounterQty(offer.quantity);
-                                setCounterPrice(offer.pricePerUnit);
-                              }}
-                              className="form-btn"
-                              style={{ padding: '6px 12px', fontSize: '0.75rem', width: 'auto', backgroundColor: 'rgba(251, 191, 36, 0.1)', borderColor: 'var(--border-accent)', color: 'var(--accent-color)' }}
-                            >
-                              Counter
-                            </button>
+                            {isPending && createdByFarmer ? (
+                              <>
+                                <button
+                                  onClick={() => handleAcceptOffer(offer._id)}
+                                  className="form-btn"
+                                  style={{ padding: '6px 14px', fontSize: '0.75rem', width: 'auto', backgroundColor: '#00ff9d', borderColor: '#00ff9d', color: '#000', fontWeight: 'bold' }}
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleRejectOffer(offer._id)}
+                                  className="form-btn"
+                                  style={{ padding: '6px 14px', fontSize: '0.75rem', width: 'auto', backgroundColor: '#ff4d4d', borderColor: '#ff4d4d', color: '#000', fontWeight: 'bold' }}
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setCounteringOffer(offer);
+                                    setCounterQty(offer.quantity);
+                                    setCounterPrice(offer.pricePerUnit);
+                                  }}
+                                  className="form-btn"
+                                  style={{ padding: '6px 14px', fontSize: '0.75rem', width: 'auto', backgroundColor: '#ffc107', borderColor: '#ffc107', color: '#000', fontWeight: 'bold' }}
+                                >
+                                  Counter
+                                </button>
+                              </>
+                            ) : isPending && createdByMe ? (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: '600' }}>
+                                ⏳ Counter Offer Sent (Waiting for Farmer)
+                              </span>
+                            ) : null}
                           </>
                         )}
                       </div>
@@ -1030,6 +1250,91 @@ export default function Demands() {
             <div style={{ overflowY: 'auto', paddingRight: '4px' }}>
               {renderHistoryTimeline(viewHistoryOffer)}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN EDIT DEMAND MODAL */}
+      {editingDemandModal && (
+        <div style={modalOverlayStyle}>
+          <div style={modalContentStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>Edit Store Demand</h3>
+              <button
+                onClick={() => setEditingDemandModal(null)}
+                style={{ background: 'none', border: 'none', color: '#ff6b6b', fontSize: '1.5rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            {editError && <div className="form-error">⚠️ {editError}</div>}
+
+            <form onSubmit={handleUpdateDemandSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="form-label">Store Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editStoreName}
+                  onChange={(e) => setEditStoreName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Item / Crop Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editItemName}
+                  onChange={(e) => setEditItemName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Required Quantity (kg)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                  min="1"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingDemandModal(null)}
+                  style={{
+                    height: '42px',
+                    padding: '0 20px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    color: 'var(--text-light)',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: 'auto',
+                    flex: '0 0 auto'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="form-btn"
+                  style={{ height: '42px', width: 'auto', padding: '0 24px', flex: '0 0 auto' }}
+                  disabled={editSubmitting}
+                >
+                  {editSubmitting ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

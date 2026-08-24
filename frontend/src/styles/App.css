@@ -148,9 +148,9 @@ body {
 }
 
 .nav-link.active {
-  color: var(--bg-primary);
+  color: #000000;
   background-color: var(--primary-color);
-  font-weight: 600;
+  font-weight: 700;
   box-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
 }
 
@@ -169,7 +169,8 @@ body {
 
 .logout-btn:hover {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: var(--bg-primary);
+  color: #000000;
+  font-weight: 700;
   box-shadow: 0 0 15px var(--primary-glow);
   transform: translateY(-1px);
 }
@@ -236,7 +237,8 @@ body {
 
 .legacy-link:hover {
   background-color: var(--accent-color);
-  color: var(--bg-primary);
+  color: #000000;
+  font-weight: 700;
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
@@ -355,7 +357,7 @@ body {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   border: none;
   border-radius: var(--radius-md);
-  color: var(--bg-primary);
+  color: #000000;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -371,11 +373,13 @@ body {
   opacity: 1;
   box-shadow: 0 0 25px rgba(0, 255, 157, 0.65);
   transform: translateY(-1px);
+  color: #000000;
 }
 
 .form-btn:disabled {
   background: var(--text-muted);
-  color: var(--bg-secondary);
+  color: #000000;
+  font-weight: 700;
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -448,7 +452,7 @@ body {
 
 .form-tab.active {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: var(--bg-primary);
+  color: #000000;
   box-shadow: 0 0 15px var(--primary-glow);
   font-weight: 700;
 }

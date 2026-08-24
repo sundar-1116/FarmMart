@@ -2,39 +2,47 @@ const Task = require('../models/Task');
 const Demand = require('../models/Demand');
 const User = require('../models/User');
 
-// Get all tasks (can filter by assignedUser)
+// Get all tasks (can filter by assignedUser or farmerId)
 // GET /api/tasks
 exports.getTasks = async (req, res, next) => {
   try {
     const filter = {};
-    const queryUser = req.query.assignedUser;
+    const queryUser = req.query.assignedUser || req.query.farmerId;
 
     if (req.user.role === 'admin') {
       if (queryUser) {
-        filter.assignedUser = queryUser;
+        filter.$or = [{ assignedUser: queryUser }, { farmerId: queryUser }];
       }
-    } else {
-      // Normal user: Can ONLY see their own tasks
-      // Requesting all tasks without a filter is an administrator-level operation
-      if (!queryUser) {
-        const error = new Error('Access denied: Omitted assignedUser filter is restricted to administrators');
-        error.statusCode = 403;
-        error.code = 'FORBIDDEN';
-        return next(error);
-      }
-
-      if (queryUser !== req.user.id) {
+    } else if (req.user.role === 'farmer') {
+      if (queryUser && queryUser.toString() !== req.user.id.toString()) {
         const error = new Error('Access denied: Cannot view other users\' tasks');
         error.statusCode = 403;
         error.code = 'FORBIDDEN';
         return next(error);
       }
-
+      // Auto-backfill farmerId for legacy tasks matching farmer name
+      await Task.updateMany(
+        { $or: [{ farmerId: null }, { farmerId: { $exists: false } }], 'farmer.name': req.user.name },
+        { $set: { farmerId: req.user.id } }
+      );
+      filter.$or = [
+        { farmerId: req.user.id },
+        { 'farmer.name': req.user.name }
+      ];
+    } else {
+      // Buyer / normal user: defaults to own tasks
+      if (queryUser && queryUser.toString() !== req.user.id.toString()) {
+        const error = new Error('Access denied: Cannot view other users\' tasks');
+        error.statusCode = 403;
+        error.code = 'FORBIDDEN';
+        return next(error);
+      }
       filter.assignedUser = req.user.id;
     }
 
     const tasks = await Task.find(filter)
       .populate('assignedUser', 'name email photo phone gender age')
+      .populate('farmerId', 'name email photo phone gender age')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, count: tasks.length, data: tasks });
@@ -159,7 +167,49 @@ exports.updateTaskPayment = async (req, res, next) => {
     task.paymentStatus = 'paid';
     await task.save();
 
+    // Auto-complete associated demand if both payment and delivery are completed
+    if (task.paymentStatus === 'paid' && task.deliveryStatus === 'delivered') {
+      await Demand.updateMany(
+        {
+          $or: [
+            { claimedByTask: task._id },
+            { storeName: task.storeName, itemName: task.itemName, buyer: task.assignedUser }
+          ]
+        },
+        { $set: { status: 'completed' } }
+      );
+    }
+
     console.log(`[SECURITY] Task payment cleared by user: ${req.user.email} for task ID: ${task._id}`);
+
+    return res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Mark task as procured (Farmer action)
+// PUT /api/tasks/:id/procure
+exports.updateTaskProcurement = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Authorization: ONLY the assigned farmer (task.farmerId) can mark as procured
+    const isAssignedFarmer = task.farmerId && task.farmerId.toString() === req.user.id;
+    if (!isAssignedFarmer) {
+      const error = new Error('Access denied: Only the assigned farmer can mark this task as procured');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN';
+      return next(error);
+    }
+
+    task.procurementStatus = 'procured';
+    await task.save();
+
+    console.log(`[SECURITY] Task procurement marked by user: ${req.user.email} for task ID: ${task._id}`);
 
     return res.status(200).json({ success: true, data: task });
   } catch (error) {
@@ -169,7 +219,7 @@ exports.updateTaskPayment = async (req, res, next) => {
 
 // Mark task as delivered
 // PUT /api/tasks/:id/delivery
-// Rule: Enforce that deliveries must be done in order of pending payments.
+// Rule: Enforce that deliveries must be done in order of pending payments and after farmer procurement.
 exports.updateTaskDelivery = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -185,7 +235,15 @@ exports.updateTaskDelivery = async (req, res, next) => {
       return next(error);
     }
 
-    // 1. Enforce that this task itself must be paid first
+    // 1. Enforce that crop procurement must be confirmed by the farmer if assigned
+    if (task.farmerId && task.procurementStatus !== 'procured') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot deliver: Crop procurement for "${task.itemName}" has not been confirmed by the farmer.`
+      });
+    }
+
+    // 2. Enforce that this task itself must be paid first
     if (task.paymentStatus !== 'paid') {
       return res.status(400).json({
         success: false,
@@ -193,22 +251,21 @@ exports.updateTaskDelivery = async (req, res, next) => {
       });
     }
 
-    // 2. Enforce that there are no older unpaid tasks for this user
-    const olderUnpaidTask = await Task.findOne({
-      assignedUser: task.assignedUser,
-      paymentStatus: 'pending',
-      createdAt: { $lt: task.createdAt }
-    });
-
-    if (olderUnpaidTask) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot deliver: There is an older unpaid procurement for "${olderUnpaidTask.itemName}" (${olderUnpaidTask.storeName}) that must be cleared first.`
-      });
-    }
-
     task.deliveryStatus = 'delivered';
     await task.save();
+
+    // Auto-complete associated demand if both payment and delivery are completed
+    if (task.paymentStatus === 'paid' && task.deliveryStatus === 'delivered') {
+      await Demand.updateMany(
+        {
+          $or: [
+            { claimedByTask: task._id },
+            { storeName: task.storeName, itemName: task.itemName, buyer: task.assignedUser }
+          ]
+        },
+        { $set: { status: 'completed' } }
+      );
+    }
 
     console.log(`[SECURITY] Task delivery marked by user: ${req.user.email} for task ID: ${task._id}`);
 
@@ -344,8 +401,9 @@ exports.createOrUpdateTaskFromOffer = async (buyerId, demand, offer, farmerUser)
   if (task) {
     // Lock check: if already paid or delivered, don't mutate terms
     if (task.paymentStatus !== 'paid' && task.deliveryStatus !== 'delivered') {
+      task.farmerId = farmerUser?._id || farmerUser?.id || offer.farmer;
       task.farmer = {
-        name: farmerUser.name,
+        name: farmerUser?.name || task.farmer?.name || 'Farmer',
         category: category
       };
       task.purchasePrice = offer.totalPrice;
@@ -360,17 +418,19 @@ exports.createOrUpdateTaskFromOffer = async (buyerId, demand, offer, farmerUser)
     task = await Task.create({
       _id: taskId,
       assignedUser: buyerId,
+      farmerId: farmerUser?._id || farmerUser?.id || offer.farmer,
       type: 'procurement',
       storeName: demand.storeName,
       itemName: demand.itemName,
       quantity: offer.quantity,
       farmer: {
-        name: farmerUser.name,
+        name: farmerUser?.name || 'Farmer',
         category: category
       },
       purchasePrice: offer.totalPrice,
       deliveryPrice: 0,
       deliveryCharges: 0,
+      procurementStatus: 'pending',
       paymentStatus: 'pending',
       deliveryStatus: 'pending',
       deadline: deadline

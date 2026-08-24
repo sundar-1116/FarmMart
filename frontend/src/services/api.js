@@ -121,21 +121,42 @@ export const api = {
     return handleResponse(res);
   },
 
+  updateDemand: async (id, demandData) => {
+    const res = await fetch(`${API_URL}/api/demands/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(demandData),
+    });
+    return handleResponse(res);
+  },
+
+  deleteDemand: async (id) => {
+    const res = await fetch(`${API_URL}/api/demands/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
   // ── Tasks ──
   getTasks: async (assignedUser = '') => {
-    let queryUser = assignedUser;
-    const sessionRaw = sessionStorage.getItem('ftm_session');
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        if (session && session.role !== 'admin') {
-          queryUser = session.id;
+    let query = '';
+    if (assignedUser) {
+      query = `?assignedUser=${assignedUser}`;
+    } else {
+      const sessionRaw = sessionStorage.getItem('ftm_session');
+      if (sessionRaw) {
+        try {
+          const session = JSON.parse(sessionRaw);
+          if (session && session.role !== 'admin') {
+            const param = session.role === 'farmer' ? 'farmerId' : 'assignedUser';
+            query = `?${param}=${session.id}`;
+          }
+        } catch (e) {
+          console.error('Error parsing session in getTasks:', e);
         }
-      } catch (e) {
-        console.error('Error parsing session in getTasks:', e);
       }
     }
-    const query = queryUser ? `?assignedUser=${queryUser}` : '';
     const res = await fetch(`${API_URL}/api/tasks${query}`, {
       headers: getAuthHeaders(),
     });
@@ -162,6 +183,14 @@ export const api = {
 
   markTaskPaid: async (id) => {
     const res = await fetch(`${API_URL}/api/tasks/${id}/payment`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  markTaskProcured: async (id) => {
+    const res = await fetch(`${API_URL}/api/tasks/${id}/procure`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -198,7 +227,15 @@ export const api = {
 
   // ── Crops ──
   getCrops: async (params = {}) => {
-    const query = new URLSearchParams(params).toString();
+    const cleanParams = {};
+    if (params && typeof params === 'object') {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '' && params[key] !== 'undefined') {
+          cleanParams[key] = params[key];
+        }
+      });
+    }
+    const query = new URLSearchParams(cleanParams).toString();
     const res = await fetch(`${API_URL}/api/crops${query ? `?${query}` : ''}`, {
       headers: getAuthHeaders(),
     });

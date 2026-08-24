@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getTasks, createTask, updateTaskPayment, updateTaskDelivery, getTaskStats, updateTask } = require('../controllers/taskController');
+const { getTasks, createTask, updateTaskPayment, updateTaskDelivery, getTaskStats, updateTask, updateTaskProcurement } = require('../controllers/taskController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
 
@@ -17,6 +17,9 @@ router.route('/stats')
 
 router.route('/:id')
   .put(updateTask);
+
+router.route('/:id/procure')
+  .put(updateTaskProcurement);
 
 router.route('/:id/payment')
   .put(updateTaskPayment);

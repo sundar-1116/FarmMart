@@ -227,11 +227,7 @@ exports.createOffer = async (req, res, next) => {
         createdBy: req.user.id
       });
 
-      if (isBuyer && !demand.buyer) {
-        demand.buyer = req.user.id;
-        await demand.save();
-      }
-
+      // Counter offer created: demand.buyer remains null/unassigned until an offer is accepted
       return res.status(201).json({ success: true, data: offer });
     }
 

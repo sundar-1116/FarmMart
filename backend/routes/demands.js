@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDemands, createDemand, updateDemand } = require('../controllers/demandController');
+const { getDemands, createDemand, updateDemand, deleteDemand } = require('../controllers/demandController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
 
@@ -12,6 +12,7 @@ router.route('/')
   .post(requireRole('admin'), createDemand);
 
 router.route('/:id')
-  .put(requireRole('admin'), updateDemand);
+  .put(requireRole('admin'), updateDemand)
+  .delete(requireRole('admin'), deleteDemand);
 
 module.exports = router;

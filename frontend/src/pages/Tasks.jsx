@@ -121,6 +121,24 @@ export default function Tasks() {
     }
   };
 
+  const handleProcure = async (taskId) => {
+    try {
+      setActionLoading(true);
+      setError('');
+      const res = await api.markTaskProcured(taskId);
+      if (res.success) {
+        alert('Crop marked as procured successfully!');
+        await fetchTasks();
+      } else {
+        setError(res.message || 'Failed to mark task as procured');
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred while updating procurement status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Filter tasks locally
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -272,8 +290,12 @@ export default function Tasks() {
                           </div>
                         ) : (
                           <div>
-                            <div style={{ fontWeight: '600' }}>{task.farmer?.name || 'Unassigned'}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{task.farmer?.category || '-'}</div>
+                            <div style={{ fontWeight: '600' }}>
+                              {user?.role === 'farmer' ? `Buyer: ${task.assignedUser?.name || 'Assigned Buyer'}` : (task.farmer?.name || 'Unassigned')}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {user?.role === 'farmer' ? `Farmer: ${task.farmer?.name || 'Self'} (${task.farmer?.category || '-'})` : (task.farmer?.category || '-')}
+                            </div>
                           </div>
                         )}
                       </td>
@@ -321,6 +343,9 @@ export default function Tasks() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span className={`badge ${task.procurementStatus === 'procured' ? 'badge-success' : 'badge-pending'}`} style={{ textAlign: 'center' }}>
+                            Procure: {task.procurementStatus || 'pending'}
+                          </span>
                           <span className={`badge ${isPaid ? 'badge-success' : 'badge-error'}`} style={{ textAlign: 'center' }}>
                             Pay: {task.paymentStatus}
                           </span>
@@ -331,12 +356,29 @@ export default function Tasks() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {isEditing ? (
+                          {user?.role === 'farmer' ? (
+                            <>
+                              {task.procurementStatus === 'procured' ? (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--success-color)', fontWeight: '700', textAlign: 'center', padding: '4px 0' }}>
+                                  ✅ Procured
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleProcure(taskId)}
+                                  className="form-btn"
+                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: '#00ff9d', borderColor: '#00ff9d', color: '#000', fontWeight: 'bold' }}
+                                  disabled={actionLoading}
+                                >
+                                  Mark as Procured
+                                </button>
+                              )}
+                            </>
+                          ) : isEditing ? (
                             <>
                               <button
                                 onClick={() => handleSaveTask(taskId)}
                                 className="form-btn"
-                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%' }}
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', color: '#000', fontWeight: 'bold' }}
                                 disabled={actionLoading}
                               >
                                 Save
@@ -344,7 +386,7 @@ export default function Tasks() {
                               <button
                                 onClick={handleCancelEdit}
                                 className="form-btn"
-                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-light)' }}
                               >
                                 Cancel
                               </button>
@@ -359,7 +401,7 @@ export default function Tasks() {
                                 <button
                                   onClick={() => handleEditClick(task)}
                                   className="form-btn"
-                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-color)' }}
+                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-color)', color: 'var(--text-light)' }}
                                 >
                                   Edit Terms
                                 </button>
@@ -369,7 +411,7 @@ export default function Tasks() {
                                 <button
                                   onClick={() => handlePay(taskId)}
                                   className="form-btn"
-                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(251,191,36,0.08)', borderColor: 'var(--border-accent)', color: 'var(--accent-color)' }}
+                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: '#fbbf24', borderColor: '#fbbf24', color: '#000', fontWeight: 'bold' }}
                                   disabled={actionLoading}
                                 >
                                   Clear Payment
@@ -380,8 +422,18 @@ export default function Tasks() {
                                 <button
                                   onClick={() => handleDeliver(taskId)}
                                   className="form-btn"
-                                  style={{ padding: '6px 12px', fontSize: '0.75rem', width: '100%', backgroundColor: 'rgba(0,255,157,0.08)', borderColor: 'var(--border-color)', color: 'var(--primary-color)' }}
-                                  disabled={actionLoading}
+                                  style={{
+                                    padding: '6px 12px',
+                                    fontSize: '0.75rem',
+                                    width: '100%',
+                                    backgroundColor: (task.farmerId && task.procurementStatus !== 'procured') ? 'rgba(255,255,255,0.1)' : '#00ff9d',
+                                    borderColor: (task.farmerId && task.procurementStatus !== 'procured') ? 'rgba(255,255,255,0.2)' : '#00ff9d',
+                                    color: (task.farmerId && task.procurementStatus !== 'procured') ? 'var(--text-muted)' : '#000',
+                                    fontWeight: 'bold',
+                                    cursor: (task.farmerId && task.procurementStatus !== 'procured') ? 'not-allowed' : 'pointer'
+                                  }}
+                                  disabled={actionLoading || (task.farmerId && task.procurementStatus !== 'procured')}
+                                  title={(task.farmerId && task.procurementStatus !== 'procured') ? 'Awaiting farmer procurement confirmation' : ''}
                                 >
                                   Confirm Delivery
                                 </button>
@@ -421,6 +473,9 @@ export default function Tasks() {
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>🏪 {task.storeName}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <span className={`badge ${task.procurementStatus === 'procured' ? 'badge-success' : 'badge-pending'}`} style={{ fontSize: '0.65rem' }}>
+                        Procure: {task.procurementStatus || 'pending'}
+                      </span>
                       <span className={`badge ${isPaid ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '0.65rem' }}>
                         Pay: {task.paymentStatus}
                       </span>
@@ -521,7 +576,24 @@ export default function Tasks() {
                   </div>
 
                   <div className="task-mobile-footer">
-                    {isEditing ? (
+                    {user?.role === 'farmer' ? (
+                      <div>
+                        {task.procurementStatus === 'procured' ? (
+                          <div style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,255,157,0.1)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: '700' }}>
+                            ✅ Procured
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleProcure(taskId)}
+                            className="form-btn"
+                            style={{ padding: '8px', fontSize: '0.8rem', width: '100%', backgroundColor: '#00ff9d', borderColor: '#00ff9d', color: '#000', fontWeight: 'bold' }}
+                            disabled={actionLoading}
+                          >
+                            Mark as Procured
+                          </button>
+                        )}
+                      </div>
+                    ) : isEditing ? (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => handleSaveTask(taskId)}
@@ -570,8 +642,17 @@ export default function Tasks() {
                           <button
                             onClick={() => handleDeliver(taskId)}
                             className="form-btn"
-                            style={{ padding: '8px', fontSize: '0.8rem', width: '100%', backgroundColor: 'rgba(0,255,157,0.08)', borderColor: 'var(--border-color)', color: 'var(--primary-color)' }}
-                            disabled={actionLoading}
+                            style={{
+                              padding: '8px',
+                              fontSize: '0.8rem',
+                              width: '100%',
+                              backgroundColor: (task.farmerId && task.procurementStatus !== 'procured') ? 'rgba(255,255,255,0.05)' : 'rgba(0,255,157,0.08)',
+                              borderColor: (task.farmerId && task.procurementStatus !== 'procured') ? 'rgba(255,255,255,0.1)' : 'var(--border-color)',
+                              color: (task.farmerId && task.procurementStatus !== 'procured') ? 'var(--text-muted)' : 'var(--primary-color)',
+                              cursor: (task.farmerId && task.procurementStatus !== 'procured') ? 'not-allowed' : 'pointer'
+                            }}
+                            disabled={actionLoading || (task.farmerId && task.procurementStatus !== 'procured')}
+                            title={(task.farmerId && task.procurementStatus !== 'procured') ? 'Awaiting farmer procurement confirmation' : ''}
                           >
                             Confirm Delivery
                           </button>

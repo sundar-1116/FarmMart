@@ -26,6 +26,11 @@ const taskSchema = new mongoose.Schema({
     required: [true, 'Please provide quantity'],
     min: [1, 'Quantity must be at least 1']
   },
+  farmerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   farmer: {
     name: { type: String, default: '' },
     category: { type: String, default: '' }
@@ -41,6 +46,11 @@ const taskSchema = new mongoose.Schema({
   deliveryCharges: {
     type: Number,
     default: 0
+  },
+  procurementStatus: {
+    type: String,
+    enum: ['pending', 'procured'],
+    default: 'pending'
   },
   paymentStatus: {
     type: String,
@@ -59,6 +69,7 @@ const taskSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 taskSchema.index({ assignedUser: 1, createdAt: -1 });
+taskSchema.index({ farmerId: 1, createdAt: -1 });
 taskSchema.index({ assignedUser: 1, paymentStatus: 1, createdAt: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
