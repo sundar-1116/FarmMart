@@ -1,7 +1,7 @@
 # FarmMart
 
-**Live Demo**: [https://farmmart-z186.onrender.com](https://farmmart-z186.onrender.com)  
-**Backend API**: [https://farmmart-backend-y6sn.onrender.com](https://farmmart-backend-y6sn.onrender.com)
+**Live Demo**: [https://farmmart-9ng8.onrender.com/](https://farmmart-9ng8.onrender.com/)  
+
 
 India's Premier Farm-to-Market Web Application. FarmMart connects local crop growers and national retail stores directly, facilitating price negotiation, supply visibility, live analytics, and AI-powered support.
 
